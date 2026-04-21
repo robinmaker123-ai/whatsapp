@@ -1,0 +1,21 @@
+node_modules/
+.env
+npm-debug.log*
+
+# build output
+dist/
+coverage/
+
+# uploads and local data
+uploads/
+
+# mobile local files
+mobile/.env
+mobile/.expo/
+mobile/dist/
+mobile/android.*
+mobile/com.*
+
+# website local files
+website/.env
+website/dist/

@@ -1,0 +1,50 @@
+# VideoApp Mobile
+
+Expo React Native Android client for the VideoApp backend in the repo root.
+
+## Highlights
+
+- OTP sign in
+- Private contact sync with local phone hashing
+- Matched contacts plus invite suggestions
+- Real-time chat with media, typing, presence, and seen states
+- Status creation and viewing
+- Call history and signaling flow
+- Update checker for the latest APK release
+
+## Setup
+
+1. Install dependencies and create the mobile env file:
+
+```bash
+npm install
+copy .env.example .env
+```
+
+2. Set your backend LAN URL in `mobile/.env`:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=http://192.168.1.20:5000
+EXPO_PUBLIC_SOCKET_URL=http://192.168.1.20:5000
+EXPO_PUBLIC_BACKEND_PORT=5000
+```
+
+3. Start Expo:
+
+```bash
+npm start
+```
+
+## Android build commands
+
+```bash
+npm run typecheck
+npm run prebuild:android
+npm run build:android:preview
+```
+
+## Notes
+
+- Use your real LAN IP instead of `localhost`, `127.0.0.1`, or `10.0.2.2`.
+- The app requests contact permission after sign-in so it can match saved numbers with registered users.
+- When `ENABLE_DEV_OTP_PREVIEW=true` on the backend, the login screen shows the development OTP. Keep it `false` in production.

@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: videoapp-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: CLIENT_URL
+        sync: false
+      - key: WEBSITE_URL
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PHONE_HASH_SECRET
+        sync: false
+      - key: DOWNLOAD_ADMIN_TOKEN
+        sync: false
+      - key: ENABLE_DEV_OTP_PREVIEW
+        value: false
+      - key: ALLOW_IN_MEMORY_MONGO
+        value: false
