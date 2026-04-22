@@ -4,10 +4,11 @@ import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom"
 const defaultRelease = {
   version: "1.0.0",
   buildNumber: 1,
+  minimumSupportedBuildNumber: 1,
   releaseNotes: [
     "OTP sign in with private contact matching",
     "Real-time chat, status, and call signaling",
-    "APK delivery with server-side download tracking",
+    "Android APK delivery from a shareable website link",
   ],
   downloadCount: 0,
   publishedAt: "",
@@ -16,15 +17,15 @@ const defaultRelease = {
 const featureCards = [
   {
     eyebrow: "Chat",
-    title: "WhatsApp-style one-to-one messaging",
+    title: "Private one-to-one messaging",
     copy:
-      "Delivered and seen states, typing signals, media uploads, reply threads, and live presence all come from the real backend.",
+      "Delivered and seen states, typing signals, media uploads, reply threads, and presence all come from the real backend.",
   },
   {
     eyebrow: "Calls",
     title: "Voice and video call flow",
     copy:
-      "Call history, ringing state, answer controls, and signaling are wired through Socket.io so the app feels production-first from the first tap.",
+      "Call history, ringing state, answer controls, and signaling are wired through Socket.io so the app feels production-ready from the first tap.",
   },
   {
     eyebrow: "Status",
@@ -39,10 +40,10 @@ const featureCards = [
       "The Android app hashes normalized phone numbers locally, sends only hashes to the backend, and receives matches plus invite suggestions.",
   },
   {
-    eyebrow: "Delivery",
-    title: "APK releases built for rollout",
+    eyebrow: "Download",
+    title: "APK delivery from a website link",
     copy:
-      "The site reads the latest Android release metadata, shows release notes, tracks download counts, and gives the app a live update-check endpoint.",
+      "Users can visit the public website, tap the download button, and install the latest VideoApp APK on Android.",
   },
   {
     eyebrow: "Deployment",
@@ -57,9 +58,9 @@ const screenshotCards = [
     label: "Chats",
     title: "Live presence, unread counts, and rich message previews",
     messages: [
-      { side: "left", text: "Hey, are you free for a video call?" },
-      { side: "right", text: "Yes. I am opening the app now." },
-      { side: "left", text: "Perfect. I already synced my contacts." },
+      { side: "left", text: "Open the website and download the APK." },
+      { side: "right", text: "Done. The app is installing now." },
+      { side: "left", text: "Perfect. Log in and start chatting." },
     ],
   },
   {
@@ -74,29 +75,50 @@ const screenshotCards = [
   },
 ];
 
+const installSteps = [
+  {
+    title: "Open this site on an Android phone",
+    copy: "Share the website URL with users so they can open it in Chrome or any mobile browser.",
+  },
+  {
+    title: "Tap the VideoApp download button",
+    copy: "The button points to your latest APK through the backend tracker or a direct APK URL.",
+  },
+  {
+    title: "Install the APK and start using the app",
+    copy: "After the file finishes downloading, the user opens it and completes the Android install flow.",
+  },
+];
+
+const homeHighlights = [
+  "Android APK in one tap",
+  "Shareable website link",
+  "Live version and release notes",
+];
+
 const supportItems = [
   {
-    title: "Deployment support",
+    title: "Direct APK mode",
     copy:
-      "Use the repo docs to deploy the static site on GitHub Pages, Netlify, or Vercel, then point the Android app and site to your live backend.",
+      "If you already host the APK somewhere, set `VITE_DIRECT_DOWNLOAD_URL` on the website and the button will download the app without waiting for backend metadata.",
   },
   {
-    title: "Release operations",
+    title: "Tracked backend mode",
     copy:
-      "Publish a new APK URL through the backend release endpoint and the website plus in-app update checker immediately surface the latest version.",
+      "If your backend is live, the website reads `/downloads/latest` and sends visitors through `/downloads/latest.apk` so you can track downloads and update releases centrally.",
   },
   {
-    title: "Backend readiness",
+    title: "Production rollout",
     copy:
-      "MongoDB, JWT auth, Socket.io messaging, media uploads, status lifecycle, and download tracking live in the same server codebase.",
+      "Publish a fresh APK URL through the release endpoint, and both the website and the mobile app update flow can pick up the newest Android build.",
   },
 ];
 
 const deploymentSteps = [
   "Deploy the `website/` app to GitHub Pages, Netlify, Vercel, or any static host.",
-  "Deploy the Node.js API and Socket.io server to Render, Railway, or your own VPS.",
-  "Set `VITE_API_BASE_URL` in the website host so download metadata points at your live server.",
-  "Publish your APK URL through the release endpoint and ship Android builds with EAS.",
+  "Set `VITE_API_BASE_URL` to your live backend, or set `VITE_DIRECT_DOWNLOAD_URL` to a direct APK file URL.",
+  "On the backend, set `APK_DOWNLOAD_URL` so `/downloads/latest.apk` redirects users to your current Android build.",
+  "Share the website URL with users so they can open the page and tap Download VideoApp APK on mobile.",
 ];
 
 const resolveApiBaseUrl = () => {
@@ -119,6 +141,9 @@ const resolveApiBaseUrl = () => {
   return "";
 };
 
+const resolveDirectDownloadUrl = () =>
+  String(import.meta.env.VITE_DIRECT_DOWNLOAD_URL || "").trim();
+
 const formatDate = (value) => {
   if (!value) {
     return "Ready to publish";
@@ -130,7 +155,7 @@ const formatDate = (value) => {
       month: "short",
       year: "numeric",
     });
-  } catch (error) {
+  } catch {
     return value;
   }
 };
@@ -165,13 +190,14 @@ const useLatestRelease = () => {
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
   const apiBaseUrl = resolveApiBaseUrl();
+  const directDownloadUrl = resolveDirectDownloadUrl();
 
   useEffect(() => {
     let isMounted = true;
 
     const loadRelease = async () => {
       if (!apiBaseUrl) {
-        setStatus("idle");
+        setStatus(directDownloadUrl ? "direct" : "idle");
         return;
       }
 
@@ -191,7 +217,7 @@ const useLatestRelease = () => {
         }
       } catch (loadError) {
         if (isMounted) {
-          setStatus("error");
+          setStatus(directDownloadUrl ? "direct" : "error");
           setError(
             loadError instanceof Error
               ? loadError.message
@@ -206,12 +232,21 @@ const useLatestRelease = () => {
     return () => {
       isMounted = false;
     };
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, directDownloadUrl]);
 
   const downloadHref =
-    release.downloadUrl || (apiBaseUrl ? `${apiBaseUrl}/downloads/latest.apk` : "#/download");
+    release.downloadUrl || directDownloadUrl || (apiBaseUrl ? `${apiBaseUrl}/downloads/latest.apk` : "");
+  const isDownloadReady = Boolean(downloadHref);
+  const downloadMode =
+    status === "ready"
+      ? "Live backend release"
+      : directDownloadUrl
+        ? "Direct APK link"
+        : apiBaseUrl
+          ? "Backend download endpoint"
+          : "Setup required";
 
-  return { apiBaseUrl, downloadHref, error, release, status };
+  return { apiBaseUrl, downloadHref, downloadMode, error, isDownloadReady, release, status };
 };
 
 const BrandMark = () => (
@@ -229,6 +264,24 @@ const SectionIntro = ({ eyebrow, title, copy, align = "left" }) => (
   </div>
 );
 
+const DownloadButton = ({ block = false, downloadHref, isDownloadReady, label }) => {
+  const className = `button button--primary${block ? " button--block" : ""}`;
+
+  if (isDownloadReady) {
+    return (
+      <a className={className} href={downloadHref}>
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <NavLink className={className} to="/support">
+      Configure APK Link
+    </NavLink>
+  );
+};
+
 const Shell = ({ children }) => (
   <div className="site-shell">
     <header className="site-header">
@@ -236,7 +289,7 @@ const Shell = ({ children }) => (
         <BrandMark />
         <div>
           <strong>VideoApp</strong>
-          <span>Private messaging for everyone</span>
+          <span>Website to Android app download flow</span>
         </div>
       </NavLink>
 
@@ -247,7 +300,7 @@ const Shell = ({ children }) => (
         <NavLink to="/features">Features</NavLink>
         <NavLink to="/screenshots">Screenshots</NavLink>
         <NavLink to="/download">Download</NavLink>
-        <NavLink to="/support">Support</NavLink>
+        <NavLink to="/support">Setup</NavLink>
       </nav>
     </header>
 
@@ -255,7 +308,7 @@ const Shell = ({ children }) => (
 
     <footer className="site-footer">
       <div>
-        <strong>Built for launch</strong>
+        <strong>Built to share your APK</strong>
         <p>
           React website, Node.js backend, MongoDB data, Socket.io delivery, and Expo Android app
           in one repo.
@@ -267,35 +320,56 @@ const Shell = ({ children }) => (
         <span>Vercel</span>
         <span>Render</span>
         <span>Railway</span>
-        <span>VPS</span>
+        <span>Android APK</span>
       </div>
     </footer>
   </div>
 );
 
-const HomePage = ({ downloadHref, release, status }) => {
+const HomePage = ({ downloadHref, downloadMode, isDownloadReady, release, status }) => {
   usePageMeta(
     "Home",
-    "VideoApp is a deployable WhatsApp-style ecosystem with a premium website, Android APK delivery, and a real-time Node.js chat backend."
+    "VideoApp gives users a simple website with a download button that starts the Android APK install flow on mobile."
   );
+
+  const statusCopy = isDownloadReady
+    ? "Users can visit this website and tap one button to start downloading the VideoApp APK."
+    : "Add your APK link and this page becomes a public download landing page for the app.";
 
   return (
     <div className="page-stack">
       <section className="hero-panel">
         <div className="hero-copy">
-          <span className="eyebrow">Android chat ecosystem</span>
-          <h1 className="hero-title">Private messaging for everyone</h1>
+          <span className="eyebrow">Android app download website</span>
+          <h1 className="hero-title">Open the site, tap the link, and download VideoApp.</h1>
           <p className="hero-body">
-            Launch a WhatsApp-style experience with a premium public website, OTP login, contact
-            sync, real-time chat, status, release tracking, and server deployment readiness.
+            This website is built for one clear job: users visit the page, see your VideoApp
+            details, and tap a button that downloads the Android application on their phone.
           </p>
+          <div className="status-row">
+            <span
+              className={`availability-pill ${
+                isDownloadReady ? "availability-pill--ready" : "availability-pill--pending"
+              }`}
+            >
+              {downloadMode}
+            </span>
+            <span className="status-note">{statusCopy}</span>
+          </div>
           <div className="hero-actions">
-            <a className="button button--primary" href={downloadHref}>
-              Download Android App
-            </a>
+            <DownloadButton
+              downloadHref={downloadHref}
+              isDownloadReady={isDownloadReady}
+              label="Download VideoApp APK"
+            />
             <NavLink className="button button--secondary" to="/download">
-              Login Guide
+              How to Install
             </NavLink>
+          </div>
+          <div className="hero-badges">
+            {homeHighlights.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
           </div>
           <div className="hero-meta">
             <div>
@@ -307,8 +381,8 @@ const HomePage = ({ downloadHref, release, status }) => {
               <strong>{release.buildNumber}</strong>
             </div>
             <div>
-              <span className="meta-label">Release status</span>
-              <strong>{status === "ready" ? "Live metadata" : "Static fallback"}</strong>
+              <span className="meta-label">Download source</span>
+              <strong>{status === "ready" ? "Tracked release" : downloadMode}</strong>
             </div>
           </div>
         </div>
@@ -319,66 +393,58 @@ const HomePage = ({ downloadHref, release, status }) => {
           <div className="hero-device hero-device--main">
             <div className="device-topbar">
               <span />
-              <strong>VideoApp</strong>
+              <strong>VideoApp Download</strong>
               <span className="presence-dot" />
             </div>
             <div className="device-story">
               <div>
-                <span className="story-chip">End-to-end ready</span>
-                <h2>Chats, status, and release delivery in one flow</h2>
+                <span className="story-chip">Simple mobile flow</span>
+                <h2>From website visitor to installed app in three steps</h2>
+                <p>
+                  Users do not need to search for your app. They just open the page and press the
+                  APK button.
+                </p>
               </div>
-              <div className="mini-list">
-                <div>
-                  <strong>Contact sync</strong>
-                  <span>Hashes contacts locally before matching</span>
-                </div>
-                <div>
-                  <strong>APK delivery</strong>
-                  <span>Server-side versioning and download counts</span>
-                </div>
-                <div>
-                  <strong>Live backend</strong>
-                  <span>Socket.io messaging, presence, and call signaling</span>
-                </div>
+              <div className="install-checklist">
+                {installSteps.map((step, index) => (
+                  <div key={step.title} className="install-checklist__item">
+                    <strong>
+                      {index + 1}. {step.title}
+                    </strong>
+                    <span>{step.copy}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
           <div className="hero-device hero-device--floating">
             <div className="mini-card">
-              <span className="eyebrow">Matched contacts</span>
-              <strong>Show only people already using the app</strong>
+              <span className="eyebrow">APK status</span>
+              <strong>{isDownloadReady ? "Ready to share" : "Needs setup"}</strong>
             </div>
             <div className="mini-card">
-              <span className="eyebrow">Invite flow</span>
-              <strong>Everyone else gets a share-ready invite link</strong>
+              <span className="eyebrow">Current release</span>
+              <strong>Version {release.version}</strong>
             </div>
           </div>
         </div>
       </section>
 
       <section className="summary-grid">
-        <article>
-          <span className="summary-kicker">Public website</span>
-          <h2>Premium responsive landing pages</h2>
-          <p>Feature storytelling, screenshots, release notes, support, and a real APK CTA.</p>
-        </article>
-        <article>
-          <span className="summary-kicker">Android app</span>
-          <h2>Expo-based mobile experience</h2>
-          <p>OTP sign in, contact sync, chat UI, calls, status, media sharing, and presence.</p>
-        </article>
-        <article>
-          <span className="summary-kicker">Backend</span>
-          <h2>Node.js, Express, MongoDB, Socket.io</h2>
-          <p>JWT auth, message persistence, status lifecycle, call records, and download tracking.</p>
-        </article>
+        {installSteps.map((step, index) => (
+          <article key={step.title}>
+            <span className="summary-kicker">Step {index + 1}</span>
+            <h2>{step.title}</h2>
+            <p>{step.copy}</p>
+          </article>
+        ))}
       </section>
 
       <section className="feature-highlight">
         <SectionIntro
-          eyebrow="Why it feels launch-ready"
-          title="Everything from the marketing website to the Android download flow shares the same live release system."
-          copy="The public site reads live server metadata, the backend tracks downloads, and the app can check the same endpoint to surface fresh builds."
+          eyebrow="Why this website works"
+          title="Your public page, Android APK link, and release system all stay connected."
+          copy="The website can show the current version, the backend can track downloads, and users get a single shareable link that leads straight to the VideoApp install flow."
         />
       </section>
     </div>
@@ -388,15 +454,15 @@ const HomePage = ({ downloadHref, release, status }) => {
 const FeaturesPage = () => {
   usePageMeta(
     "Features",
-    "Explore VideoApp features including chat, voice and video calls, status, file sharing, contact sync, and live Android release delivery."
+    "Explore VideoApp features including chat, voice and video calls, status, private contact sync, and website-based Android APK delivery."
   );
 
   return (
     <div className="page-stack">
       <SectionIntro
         eyebrow="Feature system"
-        title="Everything users expect from a modern WhatsApp-style product"
-        copy="The website presents the product clearly while the app and backend carry the real behavior: no fake chats, no demo-only flows, and no disconnected marketing copy."
+        title="Everything users expect from a modern messaging app plus a simple download website"
+        copy="The site explains the product clearly, while the app and backend carry the real behavior: chat, calls, status, contact matching, and APK delivery."
       />
 
       <section className="feature-grid">
@@ -415,14 +481,14 @@ const FeaturesPage = () => {
 const ScreenshotsPage = () => {
   usePageMeta(
     "Screenshots",
-    "Preview VideoApp mobile screenshots for chats, updates, calls, and the WhatsApp-style green Android experience."
+    "Preview VideoApp mobile screenshots for chats, updates, calls, and the Android app experience users download from the website."
   );
 
   return (
     <div className="page-stack">
       <SectionIntro
         eyebrow="Preview gallery"
-        title="A mobile-first interface designed to feel familiar, smooth, and production-ready"
+        title="A mobile-first interface designed to feel familiar, smooth, and ready to install"
         copy="These live mockups mirror the product language used inside the Android app: green surfaces, rich cards, bold hierarchy, and activity-driven states."
         align="center"
       />
@@ -476,18 +542,32 @@ const ScreenshotsPage = () => {
   );
 };
 
-const DownloadPage = ({ downloadHref, error, release, status }) => {
+const DownloadPage = ({
+  downloadHref,
+  downloadMode,
+  error,
+  isDownloadReady,
+  release,
+  status,
+}) => {
   usePageMeta(
     "Download",
-    "Download the latest VideoApp Android APK, review the release notes, and deploy the ecosystem with a live backend."
+    "Download the latest VideoApp Android APK from a simple website landing page and review the install steps and release notes."
   );
+
+  const helpText =
+    status === "ready"
+      ? "This button uses the backend tracker so every click can point to the latest published VideoApp APK."
+      : isDownloadReady
+        ? "This page is using a direct APK URL, so users can still download the app even without live backend release metadata."
+        : "Set `VITE_API_BASE_URL`, `VITE_DIRECT_DOWNLOAD_URL`, or `APK_DOWNLOAD_URL` to activate the real download button.";
 
   return (
     <div className="page-stack">
       <SectionIntro
         eyebrow="Android release"
-        title="One page for the latest APK, version, release notes, and rollout details"
-        copy="The website can read the newest live release from the backend. If your backend is not configured yet, the page still presents the release structure with a deployment-safe fallback."
+        title="A download page users can open on mobile and install from immediately"
+        copy="This page presents the latest VideoApp APK, installation guidance, and release notes so visitors can understand what they are downloading before they tap."
       />
 
       <section className="download-layout">
@@ -507,14 +587,14 @@ const DownloadPage = ({ downloadHref, error, release, status }) => {
               <strong>{release.minimumSupportedBuildNumber || release.buildNumber}</strong>
             </div>
           </div>
-          <a className="button button--primary button--block" href={downloadHref}>
-            Download APK
-          </a>
-          <p className="download-help">
-            {status === "ready"
-              ? "This link uses the backend tracker so every click updates the live download count."
-              : "Set `VITE_API_BASE_URL` on the website deployment to switch this page to live release metadata."}
-          </p>
+          <DownloadButton
+            block
+            downloadHref={downloadHref}
+            isDownloadReady={isDownloadReady}
+            label="Download VideoApp APK"
+          />
+          <p className="download-help">{helpText}</p>
+          <p className="download-help">Current link mode: {downloadMode}.</p>
           {error ? <p className="helper helper--warning">{error}</p> : null}
         </article>
 
@@ -529,22 +609,32 @@ const DownloadPage = ({ downloadHref, error, release, status }) => {
           </ul>
         </article>
       </section>
+
+      <section className="summary-grid">
+        {installSteps.map((step, index) => (
+          <article key={step.title}>
+            <span className="summary-kicker">Install step {index + 1}</span>
+            <h2>{step.title}</h2>
+            <p>{step.copy}</p>
+          </article>
+        ))}
+      </section>
     </div>
   );
 };
 
 const SupportPage = () => {
   usePageMeta(
-    "Support",
-    "Support and deployment guidance for VideoApp including site hosting, backend rollout, APK publishing, and release operations."
+    "Setup",
+    "Setup guidance for VideoApp including website hosting, backend rollout, direct APK links, and tracked Android release delivery."
   );
 
   return (
     <div className="page-stack">
       <SectionIntro
-        eyebrow="Support and deployment"
-        title="Everything you need to ship the website, backend, and Android release together"
-        copy="The repo is structured so the public site can deploy separately from the API while still pulling live release information from the server."
+        eyebrow="Setup and deployment"
+        title="Everything you need to put the website online and let users download the app"
+        copy="The repo is structured so the public site can deploy separately from the API while still pulling live release information from the server or a direct APK URL."
       />
 
       <section className="support-grid">

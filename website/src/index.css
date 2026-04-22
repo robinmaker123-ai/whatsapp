@@ -251,6 +251,44 @@ a.button {
   line-height: 1.7;
 }
 
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.availability-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.availability-pill--ready {
+  background: rgba(31, 157, 97, 0.14);
+  border-color: rgba(17, 103, 65, 0.14);
+  color: var(--primary-deep);
+}
+
+.availability-pill--pending {
+  background: rgba(141, 91, 30, 0.12);
+  border-color: rgba(141, 91, 30, 0.14);
+  color: #8d5b1e;
+}
+
+.status-note {
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
 .hero-actions,
 .button-row {
   display: flex;
@@ -290,6 +328,23 @@ a.button {
 
 .button--block {
   width: 100%;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.hero-badges span {
+  padding: 10px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(8, 63, 35, 0.08);
+  color: var(--heading);
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .hero-meta {
@@ -424,6 +479,24 @@ a.button {
 .mini-list {
   display: grid;
   gap: 12px;
+}
+
+.install-checklist {
+  display: grid;
+  gap: 12px;
+}
+
+.install-checklist__item {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(10, 69, 39, 0.06);
+  border: 1px solid rgba(8, 63, 35, 0.08);
+}
+
+.install-checklist__item strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--heading);
 }
 
 .mini-list div {
@@ -666,6 +739,10 @@ a.button {
   .hero-meta,
   .download-stats {
     grid-template-columns: 1fr;
+  }
+
+  .status-row {
+    align-items: flex-start;
   }
 }
 
