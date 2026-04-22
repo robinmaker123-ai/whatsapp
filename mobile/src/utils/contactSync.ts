@@ -1,5 +1,5 @@
 import * as Contacts from "expo-contacts";
-import * as Crypto from "expo-crypto";
+import { sha256 } from "js-sha256";
 
 import type { ContactHashInput } from "../types/models";
 
@@ -44,10 +44,7 @@ export const loadHashedDeviceContacts = async (): Promise<ContactHashInput[]> =>
         continue;
       }
 
-      const hash = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        normalizedPhone
-      );
+      const hash = sha256(normalizedPhone);
 
       if (uniqueContacts.has(hash)) {
         continue;
