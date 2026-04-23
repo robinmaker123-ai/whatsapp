@@ -1,4 +1,6 @@
+import * as Application from "expo-application";
 import axios from "axios";
+import { Platform } from "react-native";
 
 import { API_BASE_URL } from "../config/env";
 import type {
@@ -6,6 +8,7 @@ import type {
   AuthSession,
   CallRecord,
   ChatSummary,
+  Community,
   ContactHashInput,
   MediaUploadResponse,
   Message,
@@ -23,7 +26,17 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const deviceHeaders = () => ({
+  "x-device-id":
+    Application.applicationId || "mobile-device",
+  "x-device-name": Application.applicationName || "VideoApp Mobile",
+  "x-platform": Platform.OS,
+  "x-app-version": Application.nativeApplicationVersion || "dev",
+  "x-app-build": Application.nativeBuildVersion || "0",
+});
+
 const authHeaders = (token: string) => ({
+  ...deviceHeaders(),
   Authorization: `Bearer ${token}`,
 });
 
@@ -68,6 +81,8 @@ export const sendOtpRequest = async (phone: string) => {
     mockOtp?: string;
   }>("/auth/send-otp", {
     phone,
+  }, {
+    headers: deviceHeaders(),
   });
 
   return response.data;
@@ -101,7 +116,23 @@ export const verifyOtpRequest = async (
     phone,
     otp,
     ...profile,
+  }, {
+    headers: deviceHeaders(),
   });
+
+  return response.data;
+};
+
+export const refreshSessionRequest = async (refreshToken: string) => {
+  const response = await api.post<AuthSession>(
+    "/auth/refresh",
+    {
+      refreshToken,
+    },
+    {
+      headers: deviceHeaders(),
+    }
+  );
 
   return response.data;
 };
@@ -385,6 +416,30 @@ export const updateCallRequest = async (
   );
 
   return response.data.call;
+};
+
+export const fetchCommunities = async (token: string, search = "") => {
+  const response = await api.get<{ communities: Community[] }>("/community", {
+    headers: authHeaders(token),
+    params: search ? { search } : undefined,
+  });
+
+  return response.data.communities;
+};
+
+export const createCommunityRequest = async (
+  token: string,
+  payload: {
+    name: string;
+    description?: string;
+    avatarUrl?: string;
+  }
+) => {
+  const response = await api.post<{ community: Community }>("/community", payload, {
+    headers: authHeaders(token),
+  });
+
+  return response.data.community;
 };
 
 export const fetchLatestRelease = async (channel = "production") => {

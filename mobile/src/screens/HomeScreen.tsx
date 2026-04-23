@@ -9,6 +9,7 @@ import {
   Linking,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -32,10 +33,12 @@ import {
 } from "../services/cacheStorage";
 import {
   createCallRequest,
+  createCommunityRequest,
   createStatusRequest,
   extractApiError,
   fetchCalls,
   fetchChats,
+  fetchCommunities,
   fetchLatestRelease,
   fetchStatusFeed,
   markStatusViewedRequest,
@@ -49,6 +52,7 @@ import type {
   AppRelease,
   CallRecord,
   ChatSummary,
+  Community,
   InviteCandidate,
   StatusFeedEntry,
   User,
@@ -65,9 +69,17 @@ import {
   formatLastSeen,
 } from "../utils/format";
 
-type HomeTab = "Chats" | "Calls" | "Updates" | "Profile";
+type HomeTab = "Chats" | "Calls" | "Updates" | "Communities" | "Settings";
+type RealtimeLoadMode = "initial" | "background";
 
-const tabs: HomeTab[] = ["Chats", "Calls", "Updates", "Profile"];
+const tabs: HomeTab[] = ["Chats", "Calls", "Updates", "Communities", "Settings"];
+const loadingLabels: Record<HomeTab, string> = {
+  Chats: "Loading chats...",
+  Calls: "Loading calls...",
+  Updates: "Loading status updates...",
+  Communities: "Loading communities...",
+  Settings: "Refreshing your profile...",
+};
 
 const statusPalette = ["#128C7E", "#0B5A4F", "#D64545", "#3D8D7A", "#3E9BDC"];
 
@@ -175,6 +187,64 @@ const StatusRow = ({
   );
 };
 
+const CommunityRow = ({
+  community,
+  onInvite,
+}: {
+  community: Community;
+  onInvite: () => void;
+}) => {
+  const { colors } = useAppTheme();
+  const memberCount = community.memberIds.length || 1;
+
+  return (
+    <View
+      style={[
+        styles.communityCard,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.cardBorder,
+        },
+      ]}
+    >
+      <View style={styles.communityTopRow}>
+        <View style={[styles.communityBadge, { backgroundColor: colors.accentSoft }]}>
+          <Ionicons name="people" size={18} color={colors.primaryDark} />
+        </View>
+        <View style={styles.communityCopy}>
+          <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>{community.name}</Text>
+          <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
+            {community.description || "Announcements, conversations, and invite links live here."}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.communityMetaRow}>
+        <Text style={[styles.rowTime, { color: colors.textMuted }]}>
+          {community.groupsCount} groups
+        </Text>
+        <Text style={[styles.rowTime, { color: colors.textMuted }]}>
+          {memberCount} members
+        </Text>
+      </View>
+
+      <View style={styles.communityFooter}>
+        <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
+          {community.announcementGroup
+            ? `${community.announcementGroup.name} is your announcement hub.`
+            : "Create announcement groups for one-way updates."}
+        </Text>
+        <Pressable
+          onPress={onInvite}
+          style={[styles.inviteButton, { backgroundColor: colors.primary }]}
+        >
+          <Text style={[styles.inviteButtonLabel, { color: colors.surface }]}>Invite</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
 export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const {
     session,
@@ -197,22 +267,30 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     mine: null,
     feed: [],
   });
+  const [communities, setCommunities] = useState<Community[]>([]);
   const [contacts, setContacts] = useState<User[]>([]);
   const [inviteCandidates, setInviteCandidates] = useState<InviteCandidate[]>([]);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [contactSyncMessage, setContactSyncMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
   const [isSyncingContacts, setIsSyncingContacts] = useState(false);
   const [latestRelease, setLatestRelease] = useState<AppRelease | null>(null);
   const [isComposerVisible, setIsComposerVisible] = useState(false);
   const [composerMode, setComposerMode] = useState<"chat" | "call">("chat");
   const [contactsQuery, setContactsQuery] = useState("");
+  const [isCommunityComposerVisible, setIsCommunityComposerVisible] = useState(false);
+  const [communityName, setCommunityName] = useState("");
+  const [communityDescription, setCommunityDescription] = useState("");
+  const [isCreatingCommunity, setIsCreatingCommunity] = useState(false);
   const [isStatusComposerVisible, setIsStatusComposerVisible] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [statusColor, setStatusColor] = useState(statusPalette[0]);
   const [isPublishingStatus, setIsPublishingStatus] = useState(false);
   const indicatorTranslate = useRef(new Animated.Value(0)).current;
   const hasAttemptedContactSyncRef = useRef(false);
+  const hasLoadedRealtimeDataRef = useRef(false);
+  const realtimeLoadPromiseRef = useRef<Promise<void> | null>(null);
   const tabWidth = (width - spacing.xxl * 2 - spacing.md) / tabs.length;
 
   const token = session?.token;
@@ -221,6 +299,11 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const currentVersionLabel = Application.nativeApplicationVersion || "Expo preview";
   const hasAvailableUpdate = Boolean(
     latestRelease && currentBuildNumber > 0 && latestRelease.buildNumber > currentBuildNumber
+  );
+  const requiresForceUpdate = Boolean(
+    latestRelease &&
+      currentBuildNumber > 0 &&
+      latestRelease.minimumSupportedBuildNumber > currentBuildNumber
   );
 
   useEffect(() => {
@@ -287,6 +370,15 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     try {
       const release = await fetchLatestRelease();
       setLatestRelease(release);
+
+      if (
+        currentBuildNumber > 0 &&
+        release.minimumSupportedBuildNumber > currentBuildNumber
+      ) {
+        setBannerMessage(
+          `Update required: version ${release.version} must be installed before you keep using the latest backend features.`
+        );
+      }
     } catch (error) {
       const statusCode = (error as { response?: { status?: number } } | null)?.response?.status;
 
@@ -294,7 +386,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         setBannerMessage((currentMessage) => currentMessage || extractApiError(error));
       }
     }
-  }, []);
+  }, [currentBuildNumber]);
 
   useEffect(() => {
     void loadLatestRelease();
@@ -309,38 +401,74 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     void syncDeviceContacts("auto");
   }, [currentUser, syncDeviceContacts, token]);
 
-  const loadRealtimeData = useCallback(async () => {
-    if (!token) {
-      return;
-    }
+  const loadRealtimeData = useCallback(
+    async (
+      mode: RealtimeLoadMode = "background",
+      connectionReachable = serverReachable
+    ) => {
+      if (!token) {
+        return;
+      }
 
-    setIsLoading(true);
+      const showInitialLoader = mode === "initial" && !hasLoadedRealtimeDataRef.current;
 
-    try {
-      const [nextChats, nextArchived, nextCalls, nextStatuses] = await Promise.all([
-        fetchChats(token),
-        fetchChats(token, { archived: true }),
-        fetchCalls(token),
-        fetchStatusFeed(token),
-      ]);
+      if (showInitialLoader) {
+        setIsInitialLoading(true);
+      }
 
-      setChats(nextChats);
-      setArchivedChats(nextArchived);
-      setCalls(nextCalls);
-      setStatusFeed(nextStatuses);
-      setBannerMessage(serverReachable ? null : "Connected to cached data.");
-      void cacheChats(nextChats);
-      void cacheCalls(nextCalls);
-      void cacheStatuses(nextStatuses);
-    } catch (error) {
-      setBannerMessage(extractApiError(error));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [serverReachable, token]);
+      if (realtimeLoadPromiseRef.current) {
+        try {
+          await realtimeLoadPromiseRef.current;
+        } finally {
+          if (showInitialLoader) {
+            setIsInitialLoading(false);
+          }
+        }
+        return;
+      }
+
+      const request = (async () => {
+        try {
+          const [nextChats, nextArchived, nextCalls, nextStatuses, nextCommunities] = await Promise.all([
+            fetchChats(token),
+            fetchChats(token, { archived: true }),
+            fetchCalls(token),
+            fetchStatusFeed(token),
+            fetchCommunities(token),
+          ]);
+
+          setChats(nextChats);
+          setArchivedChats(nextArchived);
+          setCalls(nextCalls);
+          setStatusFeed(nextStatuses);
+          setCommunities(nextCommunities);
+          setBannerMessage(connectionReachable ? null : "Connected to cached data.");
+          void cacheChats(nextChats);
+          void cacheCalls(nextCalls);
+          void cacheStatuses(nextStatuses);
+          hasLoadedRealtimeDataRef.current = true;
+        } catch (error) {
+          setBannerMessage(extractApiError(error));
+        }
+      })();
+
+      realtimeLoadPromiseRef.current = request;
+
+      try {
+        await request;
+      } finally {
+        realtimeLoadPromiseRef.current = null;
+
+        if (showInitialLoader) {
+          setIsInitialLoading(false);
+        }
+      }
+    },
+    [serverReachable, token]
+  );
 
   useEffect(() => {
-    void loadRealtimeData();
+    void loadRealtimeData("initial");
   }, [loadRealtimeData]);
 
   useEffect(() => {
@@ -458,6 +586,21 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     );
   }, [searchQuery, statusFeed.feed]);
 
+  const filteredCommunities = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return communities;
+    }
+
+    return communities.filter((community) =>
+      [community.name, community.description || "", community.announcementGroup?.name || ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery)
+    );
+  }, [communities, searchQuery]);
+
   const filteredContacts = useMemo(() => {
     const normalizedQuery = contactsQuery.trim().toLowerCase();
 
@@ -521,6 +664,53 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     },
     [contacts.length, isSyncingContacts, syncDeviceContacts]
   );
+
+  const handleOpenCommunityComposer = useCallback(() => {
+    setIsCommunityComposerVisible(true);
+  }, []);
+
+  const handleCreateCommunity = useCallback(async () => {
+    if (!token) {
+      return;
+    }
+
+    if (!communityName.trim()) {
+      Alert.alert("Community name required", "Add a name before creating the community.");
+      return;
+    }
+
+    setIsCreatingCommunity(true);
+
+    try {
+      await createCommunityRequest(token, {
+        name: communityName.trim(),
+        description: communityDescription.trim(),
+      });
+      setCommunityName("");
+      setCommunityDescription("");
+      setIsCommunityComposerVisible(false);
+      await loadRealtimeData();
+    } catch (error) {
+      setBannerMessage(extractApiError(error));
+    } finally {
+      setIsCreatingCommunity(false);
+    }
+  }, [communityDescription, communityName, loadRealtimeData, token]);
+
+  const handleShareCommunity = useCallback(async (community: Community) => {
+    if (!community.inviteLink) {
+      setBannerMessage("Add WEBSITE_URL on the backend to generate invite links.");
+      return;
+    }
+
+    try {
+      await Share.share({
+        message: `Join ${community.name} on VideoApp: ${community.inviteLink}`,
+      });
+    } catch (error) {
+      setBannerMessage(error instanceof Error ? error.message : "Unable to share invite link.");
+    }
+  }, []);
 
   const handleOpenChat = useCallback(
     (participant: User) => {
@@ -676,8 +866,9 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
   const handleMenuPress = () => {
     Alert.alert("Menu", "Quick actions", [
-      { text: "Refresh", onPress: () => void loadRealtimeData() },
+      { text: "Refresh", onPress: () => void handleRefreshHome() },
       { text: "Sync contacts", onPress: () => void syncDeviceContacts("manual") },
+      { text: "New community", onPress: () => handleOpenCommunityComposer() },
       { text: "Settings", onPress: () => navigation.navigate("Settings") },
       { text: "Logout", style: "destructive", onPress: () => void signOut() },
       { text: "Cancel", style: "cancel" },
@@ -695,20 +886,60 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   }, []);
 
   const handleOpenLatestRelease = useCallback(async () => {
-    if (!latestRelease?.downloadUrl) {
+    const releaseUrl = latestRelease?.downloadUrl || latestRelease?.apkUrl;
+
+    if (!releaseUrl) {
       return;
     }
 
     try {
-      await Linking.openURL(latestRelease.downloadUrl);
+      await Linking.openURL(releaseUrl);
     } catch (error) {
       setBannerMessage("Could not open the latest APK download link.");
     }
-  }, [latestRelease?.downloadUrl]);
+  }, [latestRelease?.apkUrl, latestRelease?.downloadUrl]);
+
+  const handleRefreshHome = useCallback(async () => {
+    if (isRefreshingData) {
+      return;
+    }
+
+    setIsRefreshingData(true);
+
+    try {
+      const reachable = await refreshConnection();
+
+      if (!reachable) {
+        setBannerMessage("Backend unavailable. Showing cached chats, calls, updates, and communities.");
+        return;
+      }
+
+      await loadRealtimeData("background", reachable);
+    } finally {
+      setIsRefreshingData(false);
+    }
+  }, [isRefreshingData, loadRealtimeData, refreshConnection]);
 
   if (!session || !currentUser) {
     return null;
   }
+
+  const hasAnyHomeData =
+    chats.length > 0 ||
+    archivedChats.length > 0 ||
+    calls.length > 0 ||
+    communities.length > 0 ||
+    statusFeed.feed.length > 0 ||
+    Boolean(statusFeed.mine);
+  const shouldShowInitialLoadingState = isInitialLoading && !hasAnyHomeData;
+  const fabIconName =
+    activeTab === "Calls"
+      ? "call"
+      : activeTab === "Updates"
+        ? "camera"
+        : activeTab === "Communities"
+          ? "people"
+          : "chatbubble-ellipses";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screen }]}>
@@ -757,7 +988,11 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             <View>
               <Text style={[styles.brandName, { color: colors.surface }]}>VideoApp</Text>
               <Text style={[styles.brandTag, { color: colors.tabInactive }]}>
-                {serverReachable ? "LAN backend live" : "Reconnect to your backend"}
+                {isRefreshingData
+                  ? "Refreshing your home feed"
+                  : serverReachable
+                    ? "LAN backend live"
+                    : "Reconnect to your backend"}
               </Text>
             </View>
           </View>
@@ -789,7 +1024,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search chats, calls, updates"
+              placeholder="Search chats, calls, updates, communities"
               placeholderTextColor={colors.tabInactive}
               style={[
                 styles.headerSearchInput,
@@ -835,7 +1070,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                     },
                   ]}
                 >
-                  {tab}
+                  {tab === "Communities" ? "Community" : tab}
                 </Text>
               </Pressable>
             );
@@ -866,8 +1101,34 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             paddingBottom: insets.bottom + spacing.xxxl + 88,
           },
         ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshingData}
+            onRefresh={() => void handleRefreshHome()}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
+          />
+        }
         showsVerticalScrollIndicator={false}
       >
+        {isRefreshingData ? (
+          <View
+            style={[
+              styles.bannerCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.cardBorder,
+              },
+            ]}
+          >
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.bannerText, { color: colors.textSecondary }]}>
+              Refreshing chats, calls, status updates, and communities.
+            </Text>
+          </View>
+        ) : null}
+
         {activeTab === "Chats" ? (
           <View style={styles.sectionStack}>
             <View
@@ -968,18 +1229,18 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                     style={[styles.secondaryButton, { borderColor: colors.cardBorder }]}
                   >
                     <Text style={[styles.secondaryButtonLabel, { color: colors.textPrimary }]}>
-                      Update app
+                      {requiresForceUpdate ? "Update required" : "Update app"}
                     </Text>
                   </Pressable>
                 ) : null}
               </View>
             </View>
 
-            {isLoading ? (
+            {shouldShowInitialLoadingState ? (
               <View style={styles.loadingCard}>
                 <ActivityIndicator color={colors.primary} />
                 <Text style={[styles.loadingLabel, { color: colors.textSecondary }]}>
-                  Loading chats...
+                  {loadingLabels.Chats}
                 </Text>
               </View>
             ) : null}
@@ -1013,6 +1274,15 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 or end.
               </Text>
             </View>
+
+            {shouldShowInitialLoadingState ? (
+              <View style={styles.loadingCard}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={[styles.loadingLabel, { color: colors.textSecondary }]}>
+                  {loadingLabels.Calls}
+                </Text>
+              </View>
+            ) : null}
 
             {filteredCalls.map((call) => (
               <CallRow
@@ -1066,13 +1336,107 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
               </View>
             </Pressable>
 
+            {shouldShowInitialLoadingState ? (
+              <View style={styles.loadingCard}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={[styles.loadingLabel, { color: colors.textSecondary }]}>
+                  {loadingLabels.Updates}
+                </Text>
+              </View>
+            ) : null}
+
             {filteredStatuses.map((entry) => (
               <StatusRow key={entry.user.id} entry={entry} onPress={() => void handleOpenStatus(entry)} />
             ))}
           </View>
         ) : null}
 
-        {activeTab === "Profile" ? (
+        {activeTab === "Communities" ? (
+          <View style={styles.sectionStack}>
+            <View
+              style={[
+                styles.heroCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.cardBorder,
+                },
+              ]}
+            >
+              <View style={styles.heroTopRow}>
+                <View style={styles.heroCopyWrap}>
+                  <Text style={[styles.heroEyebrow, { color: colors.primary }]}>Communities</Text>
+                  <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>
+                    Organize announcement groups, rollout teams, and invite links in one place.
+                  </Text>
+                  <Text style={[styles.heroCopy, { color: colors.textSecondary }]}>
+                    Communities give you a home for structured updates, linked groups, and shareable
+                    invites backed by the real API.
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.heroPill,
+                    {
+                      backgroundColor: communities.length > 0 ? colors.accentSoft : colors.surfaceMuted,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.heroPillText, { color: colors.primaryDark }]}>
+                    {communities.length} live
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={handleOpenCommunityComposer}
+                style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+              >
+                <Text style={[styles.primaryButtonLabel, { color: colors.surface }]}>
+                  Create community
+                </Text>
+              </Pressable>
+            </View>
+
+            {shouldShowInitialLoadingState ? (
+              <View style={styles.loadingCard}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={[styles.loadingLabel, { color: colors.textSecondary }]}>
+                  {loadingLabels.Communities}
+                </Text>
+              </View>
+            ) : null}
+
+            {filteredCommunities.map((community) => (
+              <CommunityRow
+                key={community.id}
+                community={community}
+                onInvite={() => void handleShareCommunity(community)}
+              />
+            ))}
+
+            {filteredCommunities.length === 0 && !shouldShowInitialLoadingState ? (
+              <View
+                style={[
+                  styles.sectionIntro,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.cardBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+                  No communities yet
+                </Text>
+                <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+                  Create a community to launch announcement groups and share invite links with your
+                  team.
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {activeTab === "Settings" ? (
           <View style={styles.sectionStack}>
             <View
               style={[
@@ -1110,10 +1474,10 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 </View>
                 <View style={[styles.profileStatCard, { backgroundColor: colors.surfaceMuted }]}>
                   <Text style={[styles.profileStatNumber, { color: colors.textPrimary }]}>
-                    {calls.length}
+                    {communities.length}
                   </Text>
                   <Text style={[styles.profileStatLabel, { color: colors.textSecondary }]}>
-                    Calls
+                    Communities
                   </Text>
                 </View>
               </View>
@@ -1192,9 +1556,11 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 </Text>
                 <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
                   {latestRelease
-                    ? hasAvailableUpdate
-                      ? `Version ${latestRelease.version} is ready to install.`
-                      : `Current app version ${currentVersionLabel} is up to date.`
+                    ? requiresForceUpdate
+                      ? `Version ${latestRelease.version} is required to keep using the app.`
+                      : hasAvailableUpdate
+                        ? `Version ${latestRelease.version} is ready to install.`
+                        : `Current app version ${currentVersionLabel} is up to date.`
                     : "No published Android release detected yet."}
                 </Text>
               </View>
@@ -1224,14 +1590,16 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             </Pressable>
 
             <Pressable
-              onPress={() => void refreshConnection()}
+              onPress={() => void handleRefreshHome()}
               style={[
                 styles.profileRow,
                 {
                   backgroundColor: colors.surface,
                   borderColor: colors.cardBorder,
+                  opacity: isRefreshingData ? 0.72 : 1,
                 },
               ]}
+              disabled={isRefreshingData}
             >
               <View style={[styles.profileIconWrap, { backgroundColor: colors.surfaceMuted }]}>
                 <Ionicons name="refresh-outline" size={20} color={colors.primaryDark} />
@@ -1239,10 +1607,24 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
               <View style={styles.rowBody}>
                 <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>Retry backend</Text>
                 <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
-                  Refresh auth, chats, status, and socket connection
+                  {isRefreshingData
+                    ? "Refreshing auth, chats, status, and socket connection"
+                    : "Refresh auth, chats, status, and socket connection"}
                 </Text>
               </View>
+              {isRefreshingData ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : null}
             </Pressable>
+
+            {shouldShowInitialLoadingState ? (
+              <View style={styles.loadingCard}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={[styles.loadingLabel, { color: colors.textSecondary }]}>
+                  {loadingLabels.Settings}
+                </Text>
+              </View>
+            ) : null}
 
             <Pressable
               onPress={() => void signOut()}
@@ -1265,17 +1647,37 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         style={[
           styles.fab,
           {
-            backgroundColor: activeTab === "Calls" ? colors.primaryDark : colors.fab,
+            backgroundColor:
+              activeTab === "Calls"
+                ? colors.primaryDark
+                : activeTab === "Communities"
+                  ? colors.primary
+                  : colors.fab,
             bottom: insets.bottom + spacing.lg,
+            opacity: isRefreshingData ? 0.7 : 1,
           },
         ]}
-        onPress={() => void openComposer(activeTab === "Calls" ? "call" : "chat")}
+        onPress={() => {
+          if (activeTab === "Calls") {
+            void openComposer("call");
+            return;
+          }
+
+          if (activeTab === "Updates") {
+            setIsStatusComposerVisible(true);
+            return;
+          }
+
+          if (activeTab === "Communities") {
+            handleOpenCommunityComposer();
+            return;
+          }
+
+          void openComposer("chat");
+        }}
+        disabled={isRefreshingData}
       >
-        <Ionicons
-          name={activeTab === "Calls" ? "call" : "chatbubble-ellipses"}
-          size={22}
-          color={colors.surface}
-        />
+        <Ionicons name={fabIconName} size={22} color={colors.surface} />
       </Pressable>
 
       <Modal
@@ -1415,6 +1817,113 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 </View>
               ) : null}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={isCommunityComposerVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsCommunityComposerVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setIsCommunityComposerVisible(false)}
+          />
+          <View
+            style={[
+              styles.modalSheet,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.cardBorder,
+                paddingBottom: insets.bottom + spacing.lg,
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                Create community
+              </Text>
+              <Pressable
+                onPress={() => setIsCommunityComposerVisible(false)}
+                style={[styles.closeButton, { backgroundColor: colors.surfaceMuted }]}
+              >
+                <Ionicons name="close" size={18} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            <TextInput
+              value={communityName}
+              onChangeText={setCommunityName}
+              placeholder="Community name"
+              placeholderTextColor={colors.textMuted}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  color: colors.textPrimary,
+                },
+              ]}
+            />
+
+            <TextInput
+              value={communityDescription}
+              onChangeText={setCommunityDescription}
+              placeholder="What is this community for?"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              style={[
+                styles.communityInput,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  color: colors.textPrimary,
+                },
+              ]}
+            />
+
+            <View
+              style={[
+                styles.sectionIntro,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  borderColor: colors.cardBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+                What happens next
+              </Text>
+              <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+                We create the community, generate an announcement group, and prepare an invite link
+                you can share from the Communities tab.
+              </Text>
+            </View>
+
+            <View style={styles.buttonRow}>
+              <Pressable
+                onPress={() => setIsCommunityComposerVisible(false)}
+                style={[styles.secondaryButton, { borderColor: colors.cardBorder }]}
+              >
+                <Text style={[styles.secondaryButtonLabel, { color: colors.textPrimary }]}>
+                  Cancel
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void handleCreateCommunity()}
+                style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+                disabled={isCreatingCommunity}
+              >
+                {isCreatingCommunity ? (
+                  <ActivityIndicator color={colors.surface} />
+                ) : (
+                  <Text style={[styles.primaryButtonLabel, { color: colors.surface }]}>
+                    Create
+                  </Text>
+                )}
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1609,7 +2118,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
   },
   bannerCard: {
@@ -1767,6 +2276,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  communityCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+    ...shadows.soft,
+  },
+  communityTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  },
+  communityBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  communityCopy: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  communityMetaRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  communityFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
   myStatusCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1916,6 +2457,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     fontSize: 15,
+  },
+  communityInput: {
+    minHeight: 120,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: 15,
+    textAlignVertical: "top",
   },
   composerListContent: {
     gap: spacing.sm,

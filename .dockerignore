@@ -1,0 +1,12 @@
+node_modules
+website/node_modules
+mobile/node_modules
+website/dist
+mobile/dist
+.git
+.env
+.env.*
+uploads
+logs
+coverage
+npm-debug.log*

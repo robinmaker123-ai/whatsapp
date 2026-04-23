@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import { clearSession, loadSession, saveSession } from "../services/authStorage";
-import { fetchProfile, pingServer } from "../services/api";
+import { fetchProfile, pingServer, refreshSessionRequest } from "../services/api";
 import { socketService } from "../services/socketService";
 import type { AuthSession, ThemePreference, User } from "../types/models";
 
@@ -83,9 +83,30 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
             void saveSession(nextSession);
           } catch (error) {
             if (isAuthError(error)) {
-              sessionRef.current = null;
-              setSession(null);
-              await clearSession();
+              if (sessionToValidate.refreshToken) {
+                try {
+                  const refreshedSession = await refreshSessionRequest(
+                    sessionToValidate.refreshToken
+                  );
+                  const normalizedSession = {
+                    ...refreshedSession,
+                    token: refreshedSession.accessToken || refreshedSession.token,
+                  };
+
+                  sessionRef.current = normalizedSession;
+                  setSession(normalizedSession);
+                  await saveSession(normalizedSession);
+                  return true;
+                } catch (refreshError) {
+                  sessionRef.current = null;
+                  setSession(null);
+                  await clearSession();
+                }
+              } else {
+                sessionRef.current = null;
+                setSession(null);
+                await clearSession();
+              }
             }
           }
         }
@@ -146,7 +167,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
     const intervalId = setInterval(() => {
       void refreshConnection();
-    }, 12000);
+    }, 120000);
 
     return () => {
       clearInterval(intervalId);
@@ -154,11 +175,16 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [isBootstrapping, refreshConnection]);
 
   const signIn = useCallback(async (nextSession: AuthSession) => {
-    sessionRef.current = nextSession;
-    setSession(nextSession);
+    const normalizedSession = {
+      ...nextSession,
+      token: nextSession.accessToken || nextSession.token,
+    };
+
+    sessionRef.current = normalizedSession;
+    setSession(normalizedSession);
     setServerReachable(true);
     setIsBootstrapping(false);
-    await saveSession(nextSession);
+    await saveSession(normalizedSession);
   }, []);
 
   const signOut = useCallback(async () => {

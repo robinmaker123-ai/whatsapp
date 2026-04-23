@@ -6,8 +6,8 @@ process.env.ALLOW_IN_MEMORY_MONGO = "true";
 
 const { io } = require("socket.io-client");
 
-const Message = require("../src/models/Message");
-const { startServer } = require("../src/server");
+const Message = require("../backend/src/models/Message");
+const { startServer } = require("../backend/src/server");
 
 const JSON_HEADERS = {
   "Content-Type": "application/json",
@@ -102,6 +102,8 @@ test("real-time chat supports live delivery, typing, seen, and reconnect sync", 
     port: 0,
     host: "127.0.0.1",
     enableSignalHandlers: false,
+    forceInMemoryMongo: true,
+    mongoDbName: "videoapp_test_realtime_chat",
   });
 
   const baseUrl = `http://127.0.0.1:${runtime.port}`;

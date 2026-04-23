@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "buildNumber": 1,
+  "minimumSupportedBuildNumber": 1,
+  "channel": "production",
+  "platform": "android",
+  "fileName": "videoapp-latest.apk",
+  "releaseNotes": [
+    "Premium website and mobile shell upgrade",
+    "Community API foundation and structured release management",
+    "Direct website APK path support from the shared release folder",
+    "Fixed Expo native module versions so the Android app opens reliably after install"
+  ],
+  "publishedAt": "2026-04-23T18:48:22.000Z",
+  "checksumSha256": "eb65848e705b3086fd93ae473afdadc08a63792a78673bd3bcbc5cf057163d99",
+  "fileSizeBytes": 65140115,
+  "appSizeLabel": "62.1 MB"
+}

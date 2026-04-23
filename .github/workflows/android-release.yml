@@ -1,0 +1,67 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Android version name
+        required: true
+        type: string
+      build_number:
+        description: Android build number
+        required: true
+        type: string
+      apk_url:
+        description: Public APK URL
+        required: true
+        type: string
+      min_supported_build:
+        description: Minimum supported build number
+        required: true
+        type: string
+      release_notes:
+        description: Release notes separated by |
+        required: true
+        type: string
+
+jobs:
+  release-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Update shared release metadata
+        env:
+          JWT_SECRET: metadata-secret
+          REFRESH_TOKEN_SECRET: metadata-refresh-secret
+          ADMIN_JWT_SECRET: metadata-admin-secret
+          MONGO_URI: mongodb://127.0.0.1:27017/videoapp_release
+        run: >
+          npm run release:android --
+          --version "${{ inputs.version }}"
+          --build "${{ inputs.build_number }}"
+          --apk-url "${{ inputs.apk_url }}"
+          --min-supported "${{ inputs.min_supported_build }}"
+          --notes "${{ inputs.release_notes }}"
+
+      - name: Sync website release assets
+        run: npm run sync:shared-assets
+
+      - name: Upload release metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-metadata
+          path: |
+            shared/releases/android/release.json
+            website/public/downloads/release.json

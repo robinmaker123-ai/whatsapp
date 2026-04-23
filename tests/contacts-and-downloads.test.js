@@ -6,7 +6,7 @@ process.env.ENABLE_DEV_OTP_PREVIEW = "true";
 process.env.ALLOW_IN_MEMORY_MONGO = "true";
 process.env.DOWNLOAD_ADMIN_TOKEN = "test-admin-token";
 
-const { startServer } = require("../src/server");
+const { startServer } = require("../backend/src/server");
 
 const JSON_HEADERS = {
   "Content-Type": "application/json",
@@ -65,6 +65,8 @@ test("contact sync matches hashed numbers and APK downloads are tracked", async 
     port: 0,
     host: "127.0.0.1",
     enableSignalHandlers: false,
+    forceInMemoryMongo: true,
+    mongoDbName: "videoapp_test_contacts_downloads",
   });
 
   const baseUrl = `http://127.0.0.1:${runtime.port}`;

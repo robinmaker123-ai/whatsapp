@@ -1,0 +1,200 @@
+{
+  "app": {
+    "name": "VideoApp",
+    "shortName": "VA",
+    "tagline": "Private messaging, sharp calls, and communities built for daily use.",
+    "description": "VideoApp is a WhatsApp-style communication stack with a public website, Android app, Node.js backend, MongoDB, Socket.io delivery, release management, and an admin dashboard in one repository."
+  },
+  "hero": {
+    "eyebrow": "Secure communication for teams, families, and creators",
+    "headline": "One private place for chat, calls, status, and communities.",
+    "body": "Built as a production-ready full-stack product with OTP auth, live releases, real-time delivery, moderation tooling, and a premium public website that can actually run your launch.",
+    "downloadLabel": "Download Android App",
+    "webLabel": "Open Admin Console"
+  },
+  "seo": {
+    "title": "VideoApp | Private Chat, Calls, Communities, and Android Downloads",
+    "description": "Launch a secure WhatsApp-style experience with live APK delivery, moderation tools, mobile updates, and a public website wired to the backend.",
+    "keywords": [
+      "private chat app",
+      "android apk download",
+      "messaging platform",
+      "socket.io chat",
+      "whatsapp style app"
+    ]
+  },
+  "features": [
+    {
+      "id": "private-chat",
+      "title": "Private chat",
+      "copy": "Fast one-to-one conversations with delivery states, reply threads, archived chats, and offline recovery."
+    },
+    {
+      "id": "voice-call",
+      "title": "Voice call",
+      "copy": "Launch voice sessions instantly from chat or call history with live call state updates across devices."
+    },
+    {
+      "id": "video-call",
+      "title": "Video call",
+      "copy": "Prepared for camera-first conversations with room signaling, mute controls, and polished in-call UX."
+    },
+    {
+      "id": "status",
+      "title": "Status",
+      "copy": "Share text, photo, and video updates with viewer tracking and familiar 24-hour freshness."
+    },
+    {
+      "id": "communities",
+      "title": "Communities",
+      "copy": "Organize announcement groups, nested groups, and invite links under a single community hub."
+    },
+    {
+      "id": "moderation",
+      "title": "Moderation",
+      "copy": "Reports, bans, announcements, download metrics, release management, and log visibility from one admin panel."
+    },
+    {
+      "id": "file-sharing",
+      "title": "File sharing",
+      "copy": "Send documents, photos, videos, and voice notes with safer upload handling and stricter file policies."
+    },
+    {
+      "id": "release-management",
+      "title": "Release management",
+      "copy": "Publish APK metadata, changelogs, forced update thresholds, and live website downloads without leaving the repo."
+    },
+    {
+      "id": "multi-device",
+      "title": "Multi-device ready",
+      "copy": "Browser-friendly landing and admin surfaces keep the product ready for broader multi-device expansion."
+    }
+  ],
+  "screenshots": [
+    {
+      "id": "chat",
+      "title": "Chats that stay readable under pressure",
+      "subtitle": "Pinned conversations, rich previews, reply context, and fast delivery updates.",
+      "kind": "chat",
+      "lines": [
+        "Need the APK?",
+        "It is live on the website now.",
+        "Perfect. I am joining the community next."
+      ]
+    },
+    {
+      "id": "status",
+      "title": "Status built for quick stories",
+      "subtitle": "Text, media, view counts, and 24-hour freshness in one stream.",
+      "kind": "status",
+      "lines": [
+        "My status",
+        "Product release demo",
+        "Seen by 18 viewers"
+      ]
+    },
+    {
+      "id": "calls",
+      "title": "Call flows that feel immediate",
+      "subtitle": "Voice and video state, active call controls, and post-call history.",
+      "kind": "call",
+      "lines": [
+        "Video call",
+        "Connected",
+        "00:08:14"
+      ]
+    },
+    {
+      "id": "communities",
+      "title": "Communities that hold everything together",
+      "subtitle": "Announcement channels, invite links, and clear group structure.",
+      "kind": "community",
+      "lines": [
+        "Launch Team",
+        "Announcements",
+        "4 linked groups"
+      ]
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "ops",
+      "quote": "The release panel and live download tracking turned our launch page into an actual operations surface, not just marketing wallpaper.",
+      "name": "Priya Menon",
+      "role": "Operations Lead"
+    },
+    {
+      "id": "support",
+      "quote": "Reports, bans, announcements, and logs all being visible in one place made moderation dramatically less chaotic.",
+      "name": "Arjun Patel",
+      "role": "Support Manager"
+    },
+    {
+      "id": "growth",
+      "quote": "Users could move from the website to install in seconds. The QR flow and changelog reduced a lot of drop-off.",
+      "name": "Nina Fernandes",
+      "role": "Growth Lead"
+    }
+  ],
+  "faq": [
+    {
+      "id": "download",
+      "question": "How do users get the latest Android build?",
+      "answer": "The website reads the current release metadata and serves the tracked APK download flow with version, changelog, and force-update thresholds."
+    },
+    {
+      "id": "security",
+      "question": "Is the backend protected for public launch?",
+      "answer": "Yes. The production setup includes refresh-token sessions, rate limiting, stricter upload validation, CORS allowlists, Helmet headers, moderation rules, and structured error logging."
+    },
+    {
+      "id": "admin",
+      "question": "What can admins do from the dashboard?",
+      "answer": "Admins can log in securely, review users and reports, ban or unban accounts, broadcast announcements, publish releases, inspect download counts, and review recent error logs."
+    },
+    {
+      "id": "deploy",
+      "question": "Can the stack be deployed on separate services?",
+      "answer": "Yes. The repository is prepared for static website hosting, containerized backend deployment, MongoDB Atlas, and custom-domain HTTPS with provider-managed or reverse-proxy SSL."
+    }
+  ],
+  "updates": [
+    {
+      "id": "phase-two-launch",
+      "title": "Phase two launch readiness",
+      "date": "2026-04-23",
+      "summary": "Production deployment, admin controls, release management, and security hardening landed across the whole stack."
+    },
+    {
+      "id": "admin-panel",
+      "title": "Admin dashboard goes live",
+      "date": "2026-04-22",
+      "summary": "User moderation, report review, broadcast announcements, error logs, and APK management are now available from the web admin surface."
+    },
+    {
+      "id": "release-pipeline",
+      "title": "Android release pipeline prepared",
+      "date": "2026-04-21",
+      "summary": "The project now carries structured release metadata, changelogs, build numbers, and update thresholds that power both the website and mobile app."
+    }
+  ],
+  "footer": {
+    "contactEmail": "hello@videoapp.local",
+    "privacyUrl": "#privacy",
+    "termsUrl": "#terms",
+    "socialLinks": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/"
+      },
+      {
+        "label": "X",
+        "href": "https://x.com/"
+      },
+      {
+        "label": "LinkedIn",
+        "href": "https://www.linkedin.com/"
+      }
+    ]
+  }
+}

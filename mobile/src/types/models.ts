@@ -16,6 +16,7 @@ export type CallStatus =
 
 export type UserPrivacy = {
   readReceipts: boolean;
+  callVisibility: "everyone" | "contacts" | "nobody";
   lastSeenVisibility: "everyone" | "contacts" | "nobody";
   statusVisibility: "everyone" | "contacts" | "nobody";
   profilePhotoVisibility: "everyone" | "contacts" | "nobody";
@@ -75,6 +76,19 @@ export type MatchedContactsResponse = {
 
 export type AuthSession = {
   token: string;
+  accessToken?: string;
+  refreshToken?: string;
+  session?: {
+    id: string;
+    deviceId?: string;
+    deviceName?: string;
+    platform?: string;
+    appVersion?: string;
+    appBuildNumber?: string;
+    expiresAt?: string;
+    lastUsedAt?: string;
+    isCurrent?: boolean;
+  } | null;
   user: User;
 };
 
@@ -262,6 +276,39 @@ export type SocketAck = {
   error?: string;
 };
 
+export type CommunityGroup = {
+  id: string;
+  name: string;
+  description?: string;
+  avatarUrl?: string;
+  communityId?: string | null;
+  creatorId: string;
+  adminIds: string[];
+  memberIds: string[];
+  isAnnouncementGroup: boolean;
+  inviteCode: string;
+  inviteLink: string;
+  lastActivityAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type Community = {
+  id: string;
+  name: string;
+  description?: string;
+  avatarUrl?: string;
+  creatorId: string;
+  memberIds: string[];
+  announcementGroupId?: string | null;
+  announcementGroup?: Pick<CommunityGroup, "id" | "name" | "memberIds" | "isAnnouncementGroup"> | null;
+  inviteCode: string;
+  inviteLink: string;
+  groupsCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type AppRelease = {
   id: string;
   version: string;
@@ -270,13 +317,17 @@ export type AppRelease = {
   platform: string;
   fileName?: string;
   checksumSha256?: string;
+  fileSizeBytes?: number | null;
+  appSizeLabel?: string;
   minimumSupportedBuildNumber: number;
   releaseNotes: string[];
   downloadCount: number;
   publishedAt: string;
   apkUrl: string;
   downloadUrl: string;
+  relativeWebsiteDownloadPath?: string;
   isLatest: boolean;
+  source?: string;
   createdAt?: string;
   updatedAt?: string;
 };

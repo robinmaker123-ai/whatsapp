@@ -47,6 +47,7 @@ const prettify = (value: string) =>
 
 const defaultPrivacy: UserPrivacy = {
   readReceipts: true,
+  callVisibility: "everyone",
   lastSeenVisibility: "everyone",
   statusVisibility: "contacts",
   profilePhotoVisibility: "everyone",
@@ -465,6 +466,7 @@ export const SettingsScreen = ({ navigation }: SettingsScreenProps) => {
 
           {(
             [
+              ["callVisibility", "Who can call me"],
               ["lastSeenVisibility", "Last seen"],
               ["statusVisibility", "Status visibility"],
               ["profilePhotoVisibility", "Profile photo"],

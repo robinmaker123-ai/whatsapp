@@ -4,7 +4,8 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node backend/src/server.js
+    healthCheckPath: /health/ready
     autoDeploy: true
     envVars:
       - key: NODE_ENV
@@ -19,10 +20,24 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: REFRESH_TOKEN_SECRET
+        sync: false
+      - key: ADMIN_JWT_SECRET
+        sync: false
       - key: PHONE_HASH_SECRET
         sync: false
       - key: DOWNLOAD_ADMIN_TOKEN
         sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: WEBSITE_DOMAIN
+        sync: false
+      - key: API_DOMAIN
+        sync: false
+      - key: TRUST_PROXY
+        value: true
       - key: ENABLE_DEV_OTP_PREVIEW
         value: false
       - key: ALLOW_IN_MEMORY_MONGO
