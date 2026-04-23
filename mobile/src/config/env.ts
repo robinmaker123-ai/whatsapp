@@ -1,6 +1,7 @@
 import { NativeModules } from "react-native";
 
 const DEFAULT_BACKEND_PORT = 5000;
+const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, "");
 
@@ -34,6 +35,8 @@ const extractHostname = (value: string) => {
   }
 };
 
+const isLoopbackHost = (host: string) => LOCALHOST_HOSTNAMES.has(host.trim().toLowerCase());
+
 const isPrivateIpv4 = (host: string) => {
   const octets = host.split(".").map((octet) => Number(octet));
 
@@ -46,6 +49,24 @@ const isPrivateIpv4 = (host: string) => {
   }
 
   return octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31;
+};
+
+const isPrivateHost = (host: string) => isLoopbackHost(host) || isPrivateIpv4(host);
+
+const resolvePublicReleaseUrl = (value?: string) => {
+  const resolvedUrl = resolveUrl(value);
+
+  if (!resolvedUrl) {
+    return "";
+  }
+
+  const host = extractHostname(resolvedUrl);
+
+  if (isPrivateHost(host)) {
+    return "";
+  }
+
+  return resolvedUrl;
 };
 
 const resolveBackendPort = () => {
@@ -82,11 +103,23 @@ const resolveRuntimeLanUrl = () => {
   }
 };
 
-const configuredApiBaseUrl = resolveUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
-const configuredSocketUrl = resolveUrl(
+const developmentApiBaseUrl = resolveUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
+const developmentSocketUrl = resolveUrl(
   process.env.EXPO_PUBLIC_SOCKET_URL || process.env.EXPO_PUBLIC_API_BASE_URL
 );
+const releaseApiBaseUrl = resolvePublicReleaseUrl(
+  process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL
+);
+const releaseSocketUrl = resolvePublicReleaseUrl(
+  process.env.EXPO_PUBLIC_PRODUCTION_SOCKET_URL ||
+    process.env.EXPO_PUBLIC_SOCKET_URL ||
+    process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL ||
+    process.env.EXPO_PUBLIC_API_BASE_URL
+);
 const runtimeLanUrl = resolveUrl(resolveRuntimeLanUrl());
+
+const configuredApiBaseUrl = __DEV__ ? developmentApiBaseUrl : releaseApiBaseUrl;
+const configuredSocketUrl = __DEV__ ? developmentSocketUrl : releaseSocketUrl;
 
 const configuredApiHost = extractHostname(configuredApiBaseUrl);
 const runtimeLanHost = extractHostname(runtimeLanUrl);
@@ -95,7 +128,7 @@ const shouldPreferRuntimeLanUrl =
   __DEV__ &&
   Boolean(runtimeLanUrl) &&
   (!configuredApiBaseUrl ||
-    (isPrivateIpv4(configuredApiHost) && configuredApiHost !== runtimeLanHost));
+    (isPrivateHost(configuredApiHost) && configuredApiHost !== runtimeLanHost));
 
 const selectedApiBaseUrl = shouldPreferRuntimeLanUrl ? runtimeLanUrl : configuredApiBaseUrl;
 const selectedSocketUrl = shouldPreferRuntimeLanUrl
@@ -105,12 +138,30 @@ const selectedSocketUrl = shouldPreferRuntimeLanUrl
 export const API_BASE_URL = selectedApiBaseUrl;
 export const SOCKET_URL = selectedSocketUrl;
 export const IS_NETWORK_CONFIGURED = Boolean(API_BASE_URL && SOCKET_URL);
+export const IS_DEV_BUILD = __DEV__;
+export const LOGIN_NETWORK_SUBTITLE = IS_DEV_BUILD
+  ? "Connect your Android app to the real Node, MongoDB, and Socket.io backend over LAN."
+  : "Connect your Android app to the live Node, MongoDB, and Socket.io backend.";
+export const STARTUP_NETWORK_SUBTITLE = IS_DEV_BUILD
+  ? "Restoring your session, refreshing the socket, and checking the LAN backend."
+  : "Restoring your session, refreshing the socket, and checking the live backend.";
+export const CONNECTED_STATUS_LABEL = IS_DEV_BUILD ? "Backend connected" : "Backend online";
+export const DISCONNECTED_STATUS_LABEL = IS_DEV_BUILD
+  ? "Waiting for backend"
+  : "Backend unavailable";
+export const NETWORK_CONFIG_HINT = IS_DEV_BUILD
+  ? "Update mobile/.env with your current LAN IP and make sure the backend is running."
+  : "This release build needs a public backend URL. Rebuild with EXPO_PUBLIC_PRODUCTION_API_BASE_URL and EXPO_PUBLIC_PRODUCTION_SOCKET_URL pointing to your live API.";
+export const NETWORK_MISSING_CONFIG_MESSAGE = IS_DEV_BUILD
+  ? "Backend URL is not configured. Set EXPO_PUBLIC_API_BASE_URL in mobile/.env and restart Expo."
+  : "This release build is missing a public backend URL. Set EXPO_PUBLIC_PRODUCTION_API_BASE_URL and EXPO_PUBLIC_PRODUCTION_SOCKET_URL before building the APK.";
 
 if (__DEV__) {
   console.log("[env] mobile", {
     apiBaseUrl: API_BASE_URL || "not-configured",
     socketUrl: SOCKET_URL || "not-configured",
     configuredApiBaseUrl: configuredApiBaseUrl || "not-configured",
+    releaseApiBaseUrl: releaseApiBaseUrl || "not-configured",
     runtimeLanUrl: runtimeLanUrl || "not-detected",
     configSource: shouldPreferRuntimeLanUrl ? "runtime-lan" : "env",
     isNetworkConfigured: IS_NETWORK_CONFIGURED,

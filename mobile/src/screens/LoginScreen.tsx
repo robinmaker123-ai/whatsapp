@@ -18,6 +18,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../contexts/AuthContext";
 import {
+  API_BASE_URL,
+  CONNECTED_STATUS_LABEL,
+  DISCONNECTED_STATUS_LABEL,
+  IS_DEV_BUILD,
+  LOGIN_NETWORK_SUBTITLE,
+} from "../config/env";
+import {
   extractApiError,
   sendOtpRequest,
   updateProfile,
@@ -30,6 +37,7 @@ export const LoginScreen = () => {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { signIn, refreshConnection, serverReachable } = useAuth();
+  const backendTargetLabel = API_BASE_URL || (IS_DEV_BUILD ? "set mobile/.env" : "public release URL missing");
   const [phone, setPhone] = useState("+91");
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
@@ -184,7 +192,7 @@ export const LoginScreen = () => {
             </Pressable>
             <Text style={[styles.title, { color: colors.textPrimary }]}>Sign in to VideoApp</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Connect your Android app to the real Node, MongoDB, and Socket.io backend over LAN.
+              {LOGIN_NETWORK_SUBTITLE}
             </Text>
           </View>
 
@@ -211,12 +219,15 @@ export const LoginScreen = () => {
                   { color: serverReachable ? colors.primaryDark : colors.textSecondary },
                 ]}
               >
-                {serverReachable ? "Backend connected" : "Waiting for backend"}
+                {serverReachable ? CONNECTED_STATUS_LABEL : DISCONNECTED_STATUS_LABEL}
               </Text>
             </View>
 
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               OTP login
+            </Text>
+            <Text style={[styles.backendHint, { color: colors.textMuted }]}>
+              Backend target: {backendTargetLabel}
             </Text>
             <TextInput
               value={name}
@@ -445,6 +456,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
+  },
+  backendHint: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   input: {
     borderRadius: radii.md,

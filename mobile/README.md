@@ -21,7 +21,7 @@ npm install
 copy .env.example .env
 ```
 
-2. Set your backend LAN URL in `mobile/.env`:
+2. Set your backend LAN URL in `mobile/.env` for development:
 
 ```bash
 EXPO_PUBLIC_API_BASE_URL=http://192.168.1.20:5000
@@ -29,7 +29,14 @@ EXPO_PUBLIC_SOCKET_URL=http://192.168.1.20:5000
 EXPO_PUBLIC_BACKEND_PORT=5000
 ```
 
-3. Start Expo:
+3. For release APK builds, also set a public backend URL:
+
+```bash
+EXPO_PUBLIC_PRODUCTION_API_BASE_URL=https://api.videoapp.example
+EXPO_PUBLIC_PRODUCTION_SOCKET_URL=https://api.videoapp.example
+```
+
+4. Start Expo:
 
 ```bash
 npm start
@@ -46,5 +53,6 @@ npm run build:android:preview
 ## Notes
 
 - Use your real LAN IP instead of `localhost`, `127.0.0.1`, or `10.0.2.2`.
+- Release APKs should never be built with a private `172.x`, `192.168.x`, `10.x`, or `localhost` backend URL. Use the `EXPO_PUBLIC_PRODUCTION_*` variables for public builds.
 - The app requests contact permission after sign-in so it can match saved numbers with registered users.
 - When `ENABLE_DEV_OTP_PREVIEW=true` on the backend, the login screen shows the development OTP. Keep it `false` in production.

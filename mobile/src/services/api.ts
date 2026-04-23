@@ -2,7 +2,11 @@ import * as Application from "expo-application";
 import axios from "axios";
 import { Platform } from "react-native";
 
-import { API_BASE_URL } from "../config/env";
+import {
+  API_BASE_URL,
+  NETWORK_CONFIG_HINT,
+  NETWORK_MISSING_CONFIG_MESSAGE,
+} from "../config/env";
 import type {
   AppRelease,
   AuthSession,
@@ -56,8 +60,8 @@ export const extractApiError = (error: unknown) => {
 
     if (!error.response) {
       return API_BASE_URL
-        ? `Cannot reach backend at ${API_BASE_URL}. Update mobile/.env with your current LAN IP and make sure the backend is running.`
-        : "Backend URL is not configured. Set EXPO_PUBLIC_API_BASE_URL in mobile/.env and restart Expo.";
+        ? `Cannot reach backend at ${API_BASE_URL}. ${NETWORK_CONFIG_HINT}`
+        : NETWORK_MISSING_CONFIG_MESSAGE;
     }
 
     return (

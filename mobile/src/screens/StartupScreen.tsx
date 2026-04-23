@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { API_BASE_URL, IS_DEV_BUILD, STARTUP_NETWORK_SUBTITLE } from "../config/env";
 import { useAuth } from "../contexts/AuthContext";
 import { radii, spacing, useAppTheme } from "../theme";
 
@@ -8,6 +9,7 @@ export const StartupScreen = () => {
   const { colors, isDark } = useAppTheme();
   const { lastConnectionCheckAt, refreshConnection } = useAuth();
   const insets = useSafeAreaInsets();
+  const backendTargetLabel = API_BASE_URL || (IS_DEV_BUILD ? "set mobile/.env" : "public release URL missing");
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screen }]}>
@@ -42,7 +44,7 @@ export const StartupScreen = () => {
 
         <Text style={[styles.title, { color: colors.textPrimary }]}>VideoApp</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Restoring your session, refreshing the socket, and checking the LAN backend.
+          {STARTUP_NETWORK_SUBTITLE}
         </Text>
 
         <View
@@ -57,6 +59,9 @@ export const StartupScreen = () => {
           <ActivityIndicator color={colors.primary} />
           <Text style={[styles.cardText, { color: colors.textSecondary }]}>
             Syncing account, chats, calls, and status feed.
+          </Text>
+          <Text style={[styles.cardHint, { color: colors.textMuted }]}>
+            Backend target: {backendTargetLabel}
           </Text>
           <Text style={[styles.cardHint, { color: colors.textMuted }]}>
             Last server check:{" "}
