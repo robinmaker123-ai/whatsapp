@@ -1,6 +1,6 @@
 import { NativeModules } from "react-native";
 
-const DEFAULT_BACKEND_PORT = 5000;
+const DEFAULT_BACKEND_PORT = 5173;
 const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, "");

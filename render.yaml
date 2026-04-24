@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 5173
       - key: CLIENT_URL
         sync: false
       - key: WEBSITE_URL

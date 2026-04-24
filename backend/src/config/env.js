@@ -72,7 +72,7 @@ const config = {
   websitePublicDir,
   nodeEnv: process.env.NODE_ENV || initialNodeEnv,
   isProduction: (process.env.NODE_ENV || initialNodeEnv) === "production",
-  port: parseInteger(process.env.PORT, 5000),
+  port: parseInteger(process.env.PORT, 5173),
   mongoUri: process.env.MONGO_URI,
   jwtSecret: process.env.JWT_SECRET,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
@@ -144,6 +144,7 @@ config.sharedProductConfigPath = path.join(config.sharedConfigDir, "product.json
 config.sharedReleaseManifestPath = path.join(config.sharedReleaseDir, "release.json");
 config.websiteReleaseDir = path.join(config.websitePublicDir, "downloads");
 config.websiteProductDataDir = path.join(config.websitePublicDir, "data");
+config.websiteDistDir = path.join(rootDir, "website", "dist");
 config.bundledApkFilePath = path.join(config.sharedReleaseDir, config.apkFileName);
 config.websiteBundledApkPath = `/downloads/${config.apkFileName}`;
 

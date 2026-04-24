@@ -8,7 +8,7 @@ services:
     env_file:
       - ../.env.production
     expose:
-      - "5000"
+      - "5173"
     volumes:
       - ../uploads:/app/uploads
       - ../logs:/app/logs
@@ -24,7 +24,7 @@ services:
       - "443:443"
     environment:
       API_DOMAIN: ${API_DOMAIN}
-      APP_UPSTREAM: api:5000
+      APP_UPSTREAM: api:5173
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data

@@ -141,3 +141,33 @@ test("contact sync matches hashed numbers and APK downloads are tracked", async 
     await runtime.shutdown();
   }
 });
+
+test("bundled APK download exposes Android package headers", async () => {
+  const runtime = await startServer({
+    port: 0,
+    host: "127.0.0.1",
+    enableSignalHandlers: false,
+    forceInMemoryMongo: true,
+    mongoDbName: "videoapp_test_bundled_apk_headers",
+  });
+
+  const baseUrl = `http://127.0.0.1:${runtime.port}`;
+
+  try {
+    const response = await fetch(`${baseUrl}/downloads/latest.apk`, {
+      method: "HEAD",
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(
+      response.headers.get("content-type"),
+      "application/vnd.android.package-archive"
+    );
+    assert.match(
+      String(response.headers.get("content-disposition") || ""),
+      /attachment;\s*filename="?videoapp-latest\.apk"?/i
+    );
+  } finally {
+    await runtime.shutdown();
+  }
+});

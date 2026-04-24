@@ -190,15 +190,20 @@ const resolveApiBaseUrl = () => {
   const { hostname, protocol } = window.location;
 
   if (isLoopbackHostname(hostname)) {
-    return "http://localhost:5000";
+    return "http://localhost:5173";
   }
 
   if (isLanHostname(hostname)) {
-    return `${protocol}//${hostname}:5000`;
+    return `${protocol}//${hostname}:5173`;
   }
 
   if (hostname.startsWith("www.")) {
     return `${protocol}//api.${hostname.replace(/^www\./, "")}`;
+  }
+
+  if (hostname) {
+    const currentPort = window.location.port ? `:${window.location.port}` : "";
+    return `${protocol}//${hostname}${currentPort}`.replace(/\/+$/, "");
   }
 
   return "";

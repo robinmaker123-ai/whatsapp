@@ -156,6 +156,8 @@ const downloadLatestRelease = asyncHandler(async (req, res) => {
   }
 
   if (latestRelease.bundledFilePath) {
+    res.type("application/vnd.android.package-archive");
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.download(latestRelease.bundledFilePath, latestRelease.fileName || config.apkFileName);
     return;
   }

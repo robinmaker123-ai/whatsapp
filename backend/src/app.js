@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 
 const cors = require("cors");
@@ -25,6 +26,29 @@ const userRoutes = require("./routes/userRoutes");
 const { uploadsDir } = require("./middlewares/uploadMiddleware");
 
 const app = express();
+const websiteRoutePrefixes = [
+  "/admin/announcements",
+  "/admin/auth",
+  "/admin/logs",
+  "/admin/overview",
+  "/admin/releases",
+  "/admin/reports",
+  "/admin/users",
+  "/auth",
+  "/calls",
+  "/community",
+  "/contacts",
+  "/downloads",
+  "/groups",
+  "/health",
+  "/media",
+  "/messages",
+  "/site",
+  "/status",
+  "/uploads",
+  "/user",
+  "/users",
+];
 
 const isLoopbackHostname = (hostname = "") => {
   const normalizedHostname = String(hostname || "").trim().toLowerCase();
@@ -174,6 +198,55 @@ app.use("/groups", groupRoutes);
 app.use("/community", communityRoutes);
 app.use("/users", userRoutes);
 app.use("/user", userRoutes);
+
+const websiteDistDir = path.resolve(config.websiteDistDir);
+
+if (fs.existsSync(websiteDistDir)) {
+  app.use(
+    express.static(websiteDistDir, {
+      fallthrough: true,
+      setHeaders: (res, filePath) => {
+        const extension = path.extname(filePath).toLowerCase();
+
+        if (extension === ".apk") {
+          res.setHeader("Content-Type", "application/vnd.android.package-archive");
+          res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filePath)}"`);
+          res.setHeader("X-Content-Type-Options", "nosniff");
+        }
+
+        if (filePath.endsWith(`${path.sep}release.json`)) {
+          res.setHeader("Cache-Control", "no-cache");
+        }
+      },
+    })
+  );
+
+  app.get("*", (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
+
+    const normalizedPath = String(req.path || "/");
+    const isKnownBackendRoute = websiteRoutePrefixes.some(
+      (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
+    );
+
+    if (isKnownBackendRoute) {
+      next();
+      return;
+    }
+
+    const acceptsHtml = String(req.headers.accept || "").includes("text/html");
+
+    if (!acceptsHtml) {
+      next();
+      return;
+    }
+
+    res.sendFile(path.join(websiteDistDir, "index.html"));
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);

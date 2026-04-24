@@ -24,9 +24,9 @@ copy .env.example .env
 2. Set your backend LAN URL in `mobile/.env` for development:
 
 ```bash
-EXPO_PUBLIC_API_BASE_URL=http://192.168.1.20:5000
-EXPO_PUBLIC_SOCKET_URL=http://192.168.1.20:5000
-EXPO_PUBLIC_BACKEND_PORT=5000
+EXPO_PUBLIC_API_BASE_URL=http://192.168.1.20:5173
+EXPO_PUBLIC_SOCKET_URL=http://192.168.1.20:5173
+EXPO_PUBLIC_BACKEND_PORT=5173
 ```
 
 3. For release APK builds, also set a public backend URL:
