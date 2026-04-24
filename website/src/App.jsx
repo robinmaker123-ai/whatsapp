@@ -1324,6 +1324,22 @@ const App = () => {
 
   useEffect(() => {
     let isMounted = true;
+    let hasResolvedReleaseFromApi = false;
+
+    // Load bundled release metadata immediately so the APK button can become usable
+    // even while the backend is still connecting or unavailable.
+    const bundledReleasePromise = loadBundledReleaseMetadata({ apiBaseUrl })
+      .then((fallbackRelease) => {
+        if (!isMounted || hasResolvedReleaseFromApi) {
+          return fallbackRelease;
+        }
+
+        setRelease(fallbackRelease);
+        setStatus((currentStatus) => (currentStatus === "ready" ? currentStatus : "bundled"));
+        setErrorMessage("");
+        return fallbackRelease;
+      })
+      .catch(() => null);
 
     const loadOverview = async () => {
       try {
@@ -1340,7 +1356,11 @@ const App = () => {
             }
 
             if (payload.release) {
+              hasResolvedReleaseFromApi = true;
               setRelease(normalizeRelease(payload.release, { apiBaseUrl }));
+              setStatus("ready");
+              setErrorMessage("");
+              return;
             }
 
             if (payload.stats) {
@@ -1351,51 +1371,47 @@ const App = () => {
             }
 
             setAnnouncement(payload.announcement || null);
-            setStatus("ready");
-            setErrorMessage("");
-            return;
           } catch {
-            try {
-              const releasePayload = await requestJson(`${apiBaseUrl}/downloads/latest`);
+            // Fall through to the release endpoint and then the bundled metadata fallback.
+          }
 
-              if (!isMounted) {
-                return;
-              }
+          try {
+            const releasePayload = await requestJson(`${apiBaseUrl}/downloads/latest`);
 
-              if (releasePayload.release) {
-                setRelease(
-                  normalizeRelease(releasePayload.release, {
-                    apiBaseUrl,
-                    allowTrackedDownloadFallback: true,
-                  })
-                );
-                setStatus("ready");
-                setErrorMessage("");
-                return;
-              }
-            } catch {
-              const fallbackRelease = await loadBundledReleaseMetadata({ apiBaseUrl });
+            if (!isMounted) {
+              return;
+            }
 
-              if (!isMounted) {
-                return;
-              }
-
-              setRelease(fallbackRelease);
-              setStatus("bundled");
+            if (releasePayload.release) {
+              hasResolvedReleaseFromApi = true;
+              setRelease(
+                normalizeRelease(releasePayload.release, {
+                  apiBaseUrl,
+                  allowTrackedDownloadFallback: true,
+                })
+              );
+              setStatus("ready");
               setErrorMessage("");
               return;
             }
+          } catch {
+            // Fall back to the bundled release metadata below.
           }
         }
 
-        const fallbackRelease = await loadBundledReleaseMetadata({ apiBaseUrl });
+        const fallbackRelease = await bundledReleasePromise;
 
         if (!isMounted) {
           return;
         }
 
-        setRelease(fallbackRelease);
-        setStatus("bundled");
+        if (fallbackRelease) {
+          setStatus("bundled");
+          setErrorMessage("");
+          return;
+        }
+
+        throw new Error("Unable to load release metadata.");
       } catch (error) {
         if (!isMounted) {
           return;
