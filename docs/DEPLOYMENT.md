@@ -46,9 +46,9 @@ Use `render.yaml` and set these required secrets:
 Recommended values:
 
 - `NODE_ENV=production`
-- `ALLOW_IN_MEMORY_MONGO=false`
 - `ENABLE_DEV_OTP_PREVIEW=false`
 - `TRUST_PROXY=true`
+- The backend now requires a reachable real `MONGO_URI` and will not auto-fallback to an in-memory MongoDB process during deployment.
 
 ## Backend on VPS with Docker
 

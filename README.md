@@ -42,6 +42,8 @@ npm run dev:backend
 npm run dev:website
 ```
 
+The backend now requires a reachable MongoDB instance from `MONGO_URI`. It no longer falls back to `mongodb-memory-server` during normal startup.
+
 4. Start the mobile app:
 
 ```bash

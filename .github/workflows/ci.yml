@@ -40,5 +40,4 @@ jobs:
           MONGO_URI: mongodb://127.0.0.1:27017/videoapp_ci
           PHONE_HASH_SECRET: test-phone-hash-secret
           ENABLE_DEV_OTP_PREVIEW: true
-          ALLOW_IN_MEMORY_MONGO: true
         run: npm run verify

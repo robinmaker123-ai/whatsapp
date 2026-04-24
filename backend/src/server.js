@@ -16,12 +16,31 @@ const startServer = async (options = {}) => {
   const port = options.port ?? config.port;
   const host = options.host ?? "0.0.0.0";
   const enableSignalHandlers = options.enableSignalHandlers ?? true;
+  const databaseMode = options.forceInMemoryMongo ? "in-memory-test" : "external";
 
-  await connectDB({
-    forceInMemory: options.forceInMemoryMongo ?? false,
-    inMemoryDbName: options.mongoDbName,
-    mongoUri: options.mongoUri,
+  logger.info("starting server", {
+    port,
+    host,
+    environment: config.nodeEnv,
+    databaseMode,
   });
+
+  try {
+    await connectDB({
+      forceInMemory: options.forceInMemoryMongo ?? false,
+      inMemoryDbName: options.mongoDbName,
+      mongoUri: options.mongoUri,
+    });
+  } catch (error) {
+    logger.error("database connection failed; server not started", {
+      port,
+      host,
+      environment: config.nodeEnv,
+      databaseMode,
+      error,
+    });
+    throw error;
+  }
 
   const httpServer = http.createServer(app);
   const io = initializeSocketServer(httpServer);
@@ -40,6 +59,7 @@ const startServer = async (options = {}) => {
     port: actualPort,
     host,
     environment: config.nodeEnv,
+    databaseMode,
   });
 
   const shutdown = async () => {

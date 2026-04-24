@@ -2,7 +2,6 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 process.env.ENABLE_DEV_OTP_PREVIEW = "true";
-process.env.ALLOW_IN_MEMORY_MONGO = "true";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret";
 process.env.REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET || "test-refresh-secret";

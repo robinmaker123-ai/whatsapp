@@ -110,7 +110,6 @@ const config = {
     1,
   downloadAdminToken: process.env.DOWNLOAD_ADMIN_TOKEN || "",
   enableDevOtpPreview: parseBoolean(process.env.ENABLE_DEV_OTP_PREVIEW, false),
-  allowInMemoryMongo: parseBoolean(process.env.ALLOW_IN_MEMORY_MONGO, true),
   defaultRateLimitWindowMs: parseInteger(process.env.RATE_LIMIT_WINDOW_MS, 60 * 1000),
   defaultRateLimitMax: parseInteger(process.env.RATE_LIMIT_MAX, 120),
   authRateLimitWindowMs: parseInteger(

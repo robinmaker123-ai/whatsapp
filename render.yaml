@@ -40,5 +40,3 @@ services:
         value: true
       - key: ENABLE_DEV_OTP_PREVIEW
         value: false
-      - key: ALLOW_IN_MEMORY_MONGO
-        value: false
