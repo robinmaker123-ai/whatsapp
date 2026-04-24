@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { BASE_URL as WEBSITE_API_URL, requestJsonWithRetry } from "./config/api";
 import "./App.css";
 
 const websiteBasePath = String(import.meta.env.BASE_URL || "/");
@@ -33,7 +34,7 @@ const defaultProduct = {
     keywords: [],
   },
   footer: {
-    contactEmail: "hello@videoapp.local",
+    contactEmail: "hello@videoapp.example",
     privacyUrl: "#privacy",
     termsUrl: "#terms",
     socialLinks: [],
@@ -106,107 +107,6 @@ const getCurrentRoute = () => {
   }
 
   return stripBasePath(window.location.pathname || "/");
-};
-
-const isLoopbackHostname = (hostname = "") => {
-  const normalizedHostname = String(hostname || "").trim().toLowerCase();
-  return (
-    normalizedHostname === "localhost" ||
-    normalizedHostname === "127.0.0.1" ||
-    normalizedHostname === "::1" ||
-    normalizedHostname === "[::1]"
-  );
-};
-
-const isPrivateIpv4Hostname = (hostname = "") => {
-  const normalizedHostname = String(hostname || "").trim();
-
-  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(normalizedHostname)) {
-    return false;
-  }
-
-  const octets = normalizedHostname.split(".").map((segment) => Number(segment));
-
-  if (octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
-    return false;
-  }
-
-  return (
-    octets[0] === 10 ||
-    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
-    (octets[0] === 192 && octets[1] === 168) ||
-    (octets[0] === 169 && octets[1] === 254)
-  );
-};
-
-const isLanHostname = (hostname = "") => {
-  const normalizedHostname = String(hostname || "").trim().toLowerCase();
-  return isPrivateIpv4Hostname(normalizedHostname) || normalizedHostname.endsWith(".local");
-};
-
-const rewriteLoopbackUrlForCurrentClient = (rawUrl) => {
-  if (!rawUrl || typeof window === "undefined") {
-    return String(rawUrl || "").trim();
-  }
-
-  try {
-    const targetUrl = new URL(rawUrl);
-    const currentHostname = String(window.location.hostname || "").trim().toLowerCase();
-
-    if (!isLoopbackHostname(targetUrl.hostname) || !currentHostname) {
-      return targetUrl.toString().replace(/\/+$/, "");
-    }
-
-    if (isLoopbackHostname(currentHostname)) {
-      return targetUrl.toString().replace(/\/+$/, "");
-    }
-
-    if (isLanHostname(currentHostname)) {
-      targetUrl.hostname = currentHostname;
-      return targetUrl.toString().replace(/\/+$/, "");
-    }
-
-    return "";
-  } catch {
-    return String(rawUrl || "").trim();
-  }
-};
-
-const resolveApiBaseUrl = () => {
-  const configuredUrl = String(import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "");
-
-  if (configuredUrl) {
-    const rewrittenConfiguredUrl = rewriteLoopbackUrlForCurrentClient(configuredUrl);
-
-    if (rewrittenConfiguredUrl) {
-      return rewrittenConfiguredUrl;
-    }
-  }
-
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  const { hostname, protocol } = window.location;
-
-  if (isLoopbackHostname(hostname)) {
-    return "http://localhost:5173";
-  }
-
-  if (isLanHostname(hostname)) {
-    return `${protocol}//${hostname}:5173`;
-  }
-
-  if (hostname.startsWith("www.")) {
-    return `${protocol}//api.${hostname.replace(/^www\./, "")}`;
-  }
-
-  if (hostname) {
-    const currentPort = window.location.port ? `:${window.location.port}` : "";
-    return `${protocol}//${hostname}${currentPort}`.replace(/\/+$/, "");
-  }
-
-  return "";
 };
 
 const mergeProduct = (payload) => ({
@@ -377,16 +277,8 @@ const applySeo = ({ title, description, keywords, path }) => {
   }
 };
 
-const requestJson = async (url, options = {}) => {
-  const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data.message || `Request failed with ${response.status}`);
-  }
-
-  return data;
-};
+const requestJson = (url, options = {}, retryOptions = {}) =>
+  requestJsonWithRetry(url, options, retryOptions);
 
 const MarketingPage = ({
   product,
@@ -797,7 +689,7 @@ const UpdatesPage = ({ product, release, onNavigate }) => (
 );
 
 const AdminLoginPage = ({ apiBaseUrl, onLogin, onNavigate }) => {
-  const [email, setEmail] = useState("admin@videoapp.local");
+  const [email, setEmail] = useState("admin@videoapp.example");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -806,7 +698,7 @@ const AdminLoginPage = ({ apiBaseUrl, onLogin, onNavigate }) => {
     event.preventDefault();
 
     if (!apiBaseUrl) {
-      setErrorMessage("Set VITE_API_BASE_URL so the website can reach the backend admin API.");
+      setErrorMessage("Set VITE_API_URL so the website can reach the backend admin API.");
       return;
     }
 
@@ -901,7 +793,7 @@ const AdminDashboard = ({ apiBaseUrl, token, onLogout, onNavigate }) => {
 
   const adminRequest = async (path, options = {}) => {
     if (!apiBaseUrl) {
-      throw new Error("Set VITE_API_BASE_URL before using the admin dashboard.");
+      throw new Error("Set VITE_API_URL before using the admin dashboard.");
     }
 
     const headers = new Headers(options.headers || {});
@@ -1273,7 +1165,7 @@ const App = () => {
   const [status, setStatus] = useState("loading");
   const [errorMessage, setErrorMessage] = useState("");
   const [adminToken, setAdminToken] = useState(readSessionToken);
-  const apiBaseUrl = useMemo(resolveApiBaseUrl, []);
+  const apiBaseUrl = WEBSITE_API_URL;
 
   const navigate = (targetPath) => {
     const nextPath = withBasePath(targetPath);

@@ -1,6 +1,6 @@
 import { io, type Socket } from "socket.io-client";
 
-import { IS_NETWORK_CONFIGURED, SOCKET_URL } from "../config/env";
+import { IS_NETWORK_CONFIGURED, SOCKET_URL } from "../config/api";
 import type {
   CallRecord,
   CallSignalPayload,

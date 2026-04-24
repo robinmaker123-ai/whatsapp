@@ -24,6 +24,6 @@ COPY scripts ./scripts
 COPY --from=website-builder /app/website/dist ./website/dist
 
 ENV NODE_ENV=production
-EXPOSE 5173
+EXPOSE 5001
 
 CMD ["node", "backend/src/server.js"]

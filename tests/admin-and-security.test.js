@@ -7,8 +7,9 @@ process.env.REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET || "test-refresh-secret";
 process.env.ADMIN_JWT_SECRET =
   process.env.ADMIN_JWT_SECRET || "test-admin-secret";
-process.env.MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/videoapp_test";
-process.env.ADMIN_EMAIL = "admin@videoapp.local";
+process.env.MONGO_URI =
+  process.env.MONGO_URI || "mongodb://example.invalid:27017/videoapp_test";
+process.env.ADMIN_EMAIL = "admin@videoapp.example";
 
 const { hashPassword } = require("../backend/src/utils/passwordHash");
 
@@ -52,13 +53,13 @@ const createSession = async (baseUrl, name, phone) => {
 test("refresh tokens, reports, and admin moderation work together", async () => {
   const runtime = await startServer({
     port: 0,
-    host: "127.0.0.1",
+    host: "::1",
     enableSignalHandlers: false,
     forceInMemoryMongo: true,
     mongoDbName: "videoapp_test_admin_security",
   });
 
-  const baseUrl = `http://127.0.0.1:${runtime.port}`;
+  const baseUrl = `http://[::1]:${runtime.port}`;
   const uniqueSeed = `${Date.now()}`.slice(-6);
 
   try {

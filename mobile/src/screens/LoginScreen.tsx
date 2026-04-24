@@ -18,12 +18,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../contexts/AuthContext";
 import {
-  API_BASE_URL,
   CONNECTED_STATUS_LABEL,
+  DEBUG_BACKEND_TARGET_LABEL,
   DISCONNECTED_STATUS_LABEL,
-  IS_DEV_BUILD,
   LOGIN_NETWORK_SUBTITLE,
-} from "../config/env";
+  SHOW_DEBUG_NETWORK_DETAILS,
+} from "../config/api";
 import {
   extractApiError,
   sendOtpRequest,
@@ -37,7 +37,6 @@ export const LoginScreen = () => {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { signIn, refreshConnection, serverReachable } = useAuth();
-  const backendTargetLabel = API_BASE_URL || (IS_DEV_BUILD ? "set mobile/.env" : "public release URL missing");
   const [phone, setPhone] = useState("+91");
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
@@ -226,9 +225,11 @@ export const LoginScreen = () => {
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               OTP login
             </Text>
-            <Text style={[styles.backendHint, { color: colors.textMuted }]}>
-              Backend target: {backendTargetLabel}
-            </Text>
+            {SHOW_DEBUG_NETWORK_DETAILS ? (
+              <Text style={[styles.backendHint, { color: colors.textMuted }]}>
+                Backend target: {DEBUG_BACKEND_TARGET_LABEL}
+              </Text>
+            ) : null}
             <TextInput
               value={name}
               onChangeText={setName}

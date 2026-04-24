@@ -910,7 +910,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
       const reachable = await refreshConnection();
 
       if (!reachable) {
-        setBannerMessage("Backend unavailable. Showing cached chats, calls, updates, and communities.");
+        setBannerMessage("Server temporarily unavailable. Showing cached chats, calls, updates, and communities.");
         return;
       }
 
@@ -991,8 +991,8 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
                 {isRefreshingData
                   ? "Refreshing your home feed"
                   : serverReachable
-                    ? "LAN backend live"
-                    : "Reconnect to your backend"}
+                    ? "Server online"
+                    : "Reconnect to the server"}
               </Text>
             </View>
           </View>
@@ -1521,7 +1521,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             >
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Connection</Text>
               <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-                {serverReachable ? "Connected to your LAN backend" : "Backend unavailable"}
+                {serverReachable ? "Connected to the VideoApp server" : "Server unavailable"}
               </Text>
               <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
                 Last server check:{" "}

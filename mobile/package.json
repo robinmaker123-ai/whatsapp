@@ -13,8 +13,8 @@
     "doctor": "expo-doctor",
     "prebuild:android": "expo prebuild --platform android --no-install",
     "build:android:preview": "npm run validate:release-network && eas build -p android --profile preview",
-    "build:android:apk": "npm run validate:release-network && eas build -p android --profile preview",
-    "build:android:aab": "npm run validate:release-network && eas build -p android --profile production"
+    "build:android:apk": "npm run validate:release-network && eas build -p android --profile production",
+    "build:android:aab": "npm run validate:release-network && eas build -p android --profile store"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

@@ -200,7 +200,8 @@ const joinAuthenticatedUser = async (socket, io, ack) => {
 const initializeSocketServer = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: config.corsOrigin.length > 0 ? config.corsOrigin : true,
+      origin: config.corsOrigins.length > 0 ? config.corsOrigins : true,
+      credentials: true,
       methods: ["GET", "POST"],
     },
   });

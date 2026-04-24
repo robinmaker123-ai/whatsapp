@@ -27,13 +27,18 @@ npm install --prefix website
 npm install --prefix mobile
 ```
 
-2. Copy environment examples:
+2. Configure environment files:
 
 ```bash
 copy .env.example .env
-copy website\\.env.example website\\.env
-copy mobile\\.env.example mobile\\.env
 ```
+
+Then review:
+
+- `website/.env.development`
+- `website/.env.production`
+- `mobile/.env.development`
+- `mobile/.env.production`
 
 3. Start the backend and website:
 
@@ -42,7 +47,7 @@ npm run dev:backend
 npm run dev:website
 ```
 
-The backend now requires a reachable MongoDB instance from `MONGO_URI`. It no longer falls back to `mongodb-memory-server` during normal startup.
+The backend now expects a real MongoDB instance from `MONGO_URI` and defaults to port `5001`.
 
 4. Start the mobile app:
 
@@ -107,6 +112,12 @@ npm run build:android:apk --prefix mobile
 npm run build:android:aab --prefix mobile
 ```
 
+Direct EAS production APK command:
+
+```bash
+eas build -p android --profile production
+```
+
 ## Deployment targets
 
 - Website: GitHub Pages, Netlify, or Vercel
@@ -123,6 +134,14 @@ Included deployment assets:
 - `.github/workflows/ci.yml`
 - `.github/workflows/deploy-website.yml`
 - `.github/workflows/android-release.yml`
+
+## Backend process manager
+
+Run the API with PM2:
+
+```bash
+npm run start:backend:pm2
+```
 
 ## Verification
 

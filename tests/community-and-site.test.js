@@ -7,7 +7,8 @@ process.env.REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET || "test-refresh-secret";
 process.env.ADMIN_JWT_SECRET =
   process.env.ADMIN_JWT_SECRET || "test-admin-secret";
-process.env.MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/videoapp_test";
+process.env.MONGO_URI =
+  process.env.MONGO_URI || "mongodb://example.invalid:27017/videoapp_test";
 
 const { startServer } = require("../backend/src/server");
 
@@ -49,13 +50,13 @@ const createSession = async (baseUrl, name, phone) => {
 test("community creation feeds site overview and community listings", async () => {
   const runtime = await startServer({
     port: 0,
-    host: "127.0.0.1",
+    host: "::1",
     enableSignalHandlers: false,
     forceInMemoryMongo: true,
     mongoDbName: "videoapp_test_community_site",
   });
 
-  const baseUrl = `http://127.0.0.1:${runtime.port}`;
+  const baseUrl = `http://[::1]:${runtime.port}`;
   const uniqueSeed = `${Date.now()}`.slice(-6);
 
   try {

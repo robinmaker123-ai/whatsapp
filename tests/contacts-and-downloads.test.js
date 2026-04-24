@@ -9,7 +9,8 @@ process.env.REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET || "test-refresh-secret";
 process.env.ADMIN_JWT_SECRET =
   process.env.ADMIN_JWT_SECRET || "test-admin-secret";
-process.env.MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/videoapp_test";
+process.env.MONGO_URI =
+  process.env.MONGO_URI || "mongodb://example.invalid:27017/videoapp_test";
 
 const { startServer } = require("../backend/src/server");
 
@@ -68,13 +69,13 @@ const createSession = async (baseUrl, name, phone) => {
 test("contact sync matches hashed numbers and APK downloads are tracked", async () => {
   const runtime = await startServer({
     port: 0,
-    host: "127.0.0.1",
+    host: "::1",
     enableSignalHandlers: false,
     forceInMemoryMongo: true,
     mongoDbName: "videoapp_test_contacts_downloads",
   });
 
-  const baseUrl = `http://127.0.0.1:${runtime.port}`;
+  const baseUrl = `http://[::1]:${runtime.port}`;
   const uniqueSeed = `${Date.now()}`.slice(-6);
   const phoneA = `+9181${uniqueSeed}`;
   const phoneB = `+9182${uniqueSeed}`;
@@ -150,13 +151,13 @@ test("contact sync matches hashed numbers and APK downloads are tracked", async 
 test("bundled APK download exposes Android package headers", async () => {
   const runtime = await startServer({
     port: 0,
-    host: "127.0.0.1",
+    host: "::1",
     enableSignalHandlers: false,
     forceInMemoryMongo: true,
     mongoDbName: "videoapp_test_bundled_apk_headers",
   });
 
-  const baseUrl = `http://127.0.0.1:${runtime.port}`;
+  const baseUrl = `http://[::1]:${runtime.port}`;
 
   try {
     const response = await fetch(`${baseUrl}/downloads/latest.apk`, {

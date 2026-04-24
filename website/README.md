@@ -1,33 +1,39 @@
 # VideoApp Website
 
-Public React website for the VideoApp ecosystem.
+Public Vite + React website for landing pages, APK downloads, updates, and admin access.
 
-## Pages
+## Environment files
 
-- Home
-- Features
-- Screenshots
-- Download
-- Support
+- `website/.env.development`
+- `website/.env.production`
+
+Variables:
+
+```bash
+VITE_API_URL=https://api.videoapp.example
+VITE_SOCKET_URL=https://api.videoapp.example
+VITE_BASE_PATH=/
+```
 
 ## Local run
 
+1. Review `website/.env.development` and point it at your development or staging API.
+2. Install dependencies and start Vite:
+
 ```bash
 npm install
-copy .env.example .env
 npm run dev
 ```
 
-The website dev server runs on `http://localhost:4173` so the backend can stay on `http://localhost:5173`.
+The website dev server runs on port `4173`.
 
-Set `VITE_API_BASE_URL` to the live backend URL so the Download page can read `/downloads/latest`.
+## Production build
 
-If you do not want to depend on the backend release endpoint, set `VITE_DIRECT_DOWNLOAD_URL` to a direct APK file URL and the main button will download the app from that link.
-
-Set `VITE_BASE_PATH=/repo-name/` when the site is hosted under a subpath such as GitHub Pages project sites. The GitHub Actions Pages build also auto-detects the repository name and applies that base path.
-
-## Build
+1. Set `VITE_API_URL` and `VITE_SOCKET_URL` in `website/.env.production` or your hosting provider.
+2. Build the site:
 
 ```bash
 npm run build
 ```
+
+Use the real backend API URL here, not the public website URL.

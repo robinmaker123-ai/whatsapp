@@ -29,7 +29,7 @@ const defaultProduct = {
     keywords: [],
   },
   footer: {
-    contactEmail: "hello@videoapp.local",
+    contactEmail: "hello@videoapp.example",
     privacyUrl: "#privacy",
     termsUrl: "#terms",
     socialLinks: [],

@@ -14,7 +14,7 @@ const logger = createLogger({
 
 const startServer = async (options = {}) => {
   const port = options.port ?? config.port;
-  const host = options.host ?? "0.0.0.0";
+  const host = options.host ?? config.appHost;
   const enableSignalHandlers = options.enableSignalHandlers ?? true;
   const databaseMode = options.forceInMemoryMongo ? "in-memory-test" : "external";
 

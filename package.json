@@ -7,6 +7,7 @@
     "dev": "nodemon backend/src/server.js",
     "dev:backend": "nodemon backend/src/server.js",
     "start": "node backend/src/server.js",
+    "start:backend:pm2": "pm2 start backend/src/server.js --name videoapp-api",
     "dev:website": "npm run dev --prefix website",
     "dev:mobile": "npm run start --prefix mobile",
     "sync:shared-assets": "node scripts/sync-shared-assets.js",

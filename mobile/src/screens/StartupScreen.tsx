@@ -1,7 +1,11 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { API_BASE_URL, IS_DEV_BUILD, STARTUP_NETWORK_SUBTITLE } from "../config/env";
+import {
+  DEBUG_BACKEND_TARGET_LABEL,
+  SHOW_DEBUG_NETWORK_DETAILS,
+  STARTUP_NETWORK_SUBTITLE,
+} from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { radii, spacing, useAppTheme } from "../theme";
 
@@ -9,7 +13,6 @@ export const StartupScreen = () => {
   const { colors, isDark } = useAppTheme();
   const { lastConnectionCheckAt, refreshConnection } = useAuth();
   const insets = useSafeAreaInsets();
-  const backendTargetLabel = API_BASE_URL || (IS_DEV_BUILD ? "set mobile/.env" : "public release URL missing");
 
   return (
     <View style={[styles.container, { backgroundColor: colors.screen }]}>
@@ -60,9 +63,11 @@ export const StartupScreen = () => {
           <Text style={[styles.cardText, { color: colors.textSecondary }]}>
             Syncing account, chats, calls, and status feed.
           </Text>
-          <Text style={[styles.cardHint, { color: colors.textMuted }]}>
-            Backend target: {backendTargetLabel}
-          </Text>
+          {SHOW_DEBUG_NETWORK_DETAILS ? (
+            <Text style={[styles.cardHint, { color: colors.textMuted }]}>
+              Backend target: {DEBUG_BACKEND_TARGET_LABEL}
+            </Text>
+          ) : null}
           <Text style={[styles.cardHint, { color: colors.textMuted }]}>
             Last server check:{" "}
             {lastConnectionCheckAt

@@ -8,12 +8,14 @@ npm-debug.log*
 dist/
 coverage/
 logs/
+backend-dev.log
 
 # uploads and local data
 uploads/
 
 # mobile local files
 mobile/.env
+mobile/.env.*
 mobile/.expo/
 mobile/dist/
 mobile/android.*
@@ -21,4 +23,5 @@ mobile/com.*
 
 # website local files
 website/.env
+website/.env.*
 website/dist/

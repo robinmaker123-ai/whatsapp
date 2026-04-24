@@ -26,6 +26,7 @@ const userRoutes = require("./routes/userRoutes");
 const { uploadsDir } = require("./middlewares/uploadMiddleware");
 
 const app = express();
+const allowedOrigins = new Set(config.corsOrigins);
 const websiteRoutePrefixes = [
   "/admin/announcements",
   "/admin/auth",
@@ -50,58 +51,12 @@ const websiteRoutePrefixes = [
   "/users",
 ];
 
-const isLoopbackHostname = (hostname = "") => {
-  const normalizedHostname = String(hostname || "").trim().toLowerCase();
-  return (
-    normalizedHostname === "localhost" ||
-    normalizedHostname === "127.0.0.1" ||
-    normalizedHostname === "::1" ||
-    normalizedHostname === "[::1]"
-  );
-};
-
-const isPrivateIpv4Hostname = (hostname = "") => {
-  const normalizedHostname = String(hostname || "").trim();
-
-  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(normalizedHostname)) {
-    return false;
-  }
-
-  const octets = normalizedHostname.split(".").map((segment) => Number(segment));
-
-  if (octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
-    return false;
-  }
-
-  return (
-    octets[0] === 10 ||
-    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
-    (octets[0] === 192 && octets[1] === 168) ||
-    (octets[0] === 169 && octets[1] === 254)
-  );
-};
-
-const isDevelopmentOriginAllowed = (origin) => {
-  if (!origin || config.isProduction) {
-    return false;
-  }
-
-  try {
-    const parsedOrigin = new URL(origin);
-    const hostname = parsedOrigin.hostname;
-
-    return isLoopbackHostname(hostname) || isPrivateIpv4Hostname(hostname) || hostname.endsWith(".local");
-  } catch {
-    return false;
-  }
-};
-
 const isOriginAllowed = (origin) => {
-  if (!origin || config.corsOrigin.length === 0) {
+  if (!origin || allowedOrigins.size === 0) {
     return true;
   }
 
-  return config.corsOrigin.includes(origin) || isDevelopmentOriginAllowed(origin);
+  return allowedOrigins.has(origin);
 };
 
 const corsMiddleware = cors({
@@ -174,8 +129,11 @@ app.use(
 
 app.get("/health", (req, res) => {
   res.status(200).json({
+    status: "ok",
     message: "VideoApp backend is running.",
     environment: config.nodeEnv,
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.round(process.uptime()),
   });
 });
 

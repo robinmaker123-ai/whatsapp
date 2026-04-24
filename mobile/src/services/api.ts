@@ -1,12 +1,16 @@
 import * as Application from "expo-application";
-import axios from "axios";
+import axios, {
+  AxiosError,
+  AxiosHeaders,
+  type InternalAxiosRequestConfig,
+} from "axios";
 import { Platform } from "react-native";
 
 import {
-  API_BASE_URL,
-  NETWORK_CONFIG_HINT,
+  BASE_URL as API_BASE_URL,
   NETWORK_MISSING_CONFIG_MESSAGE,
-} from "../config/env";
+  SERVER_UNAVAILABLE_MESSAGE,
+} from "../config/api";
 import type {
   AppRelease,
   AuthSession,
@@ -26,25 +30,54 @@ import type {
 } from "../types/models";
 
 const EXPECTED_HEALTH_MESSAGE = "VideoApp backend is running.";
+const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const DEFAULT_RETRY_LIMIT = 2;
+
+type RetriableRequestConfig = InternalAxiosRequestConfig & {
+  retryCount?: number;
+  retryLimit?: number;
+  retryable?: boolean;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
 });
 
+const delay = (delayMs: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+
+const getHeaderValue = (headers: unknown, headerName: string) => {
+  if (!headers) {
+    return undefined;
+  }
+
+  if (headers instanceof AxiosHeaders) {
+    return headers.get(headerName);
+  }
+
+  if (typeof headers === "object") {
+    const normalizedHeaders = headers as Record<string, unknown>;
+    return (
+      normalizedHeaders[headerName] ??
+      normalizedHeaders[headerName.toLowerCase()] ??
+      normalizedHeaders[headerName.toUpperCase()]
+    );
+  }
+
+  return undefined;
+};
+
 const getResponseContentType = (response?: {
   headers?: unknown;
 }) => {
-  if (!response?.headers || typeof response.headers !== "object") {
+  const rawContentType = getHeaderValue(response?.headers, "content-type");
+
+  if (!rawContentType) {
     return "";
   }
-
-  const normalizedHeaders = response.headers as {
-    "content-type"?: unknown;
-    "Content-Type"?: unknown;
-  };
-  const rawContentType =
-    normalizedHeaders["content-type"] ?? normalizedHeaders["Content-Type"];
 
   if (Array.isArray(rawContentType)) {
     return rawContentType.map((value) => String(value || "")).join(";").toLowerCase();
@@ -81,6 +114,50 @@ const isUnexpectedBackendTarget = (response?: {
   return looksLikeHtmlDocument(response.data);
 };
 
+const shouldRetryRequest = (error: AxiosError) => {
+  const requestConfig = error.config as RetriableRequestConfig | undefined;
+
+  if (!requestConfig) {
+    return false;
+  }
+
+  const retryCount = requestConfig.retryCount || 0;
+  const retryLimit =
+    requestConfig.retryLimit ??
+    (String(requestConfig.method || "get").toLowerCase() === "get"
+      ? DEFAULT_RETRY_LIMIT
+      : 0);
+
+  if (retryCount >= retryLimit) {
+    return false;
+  }
+
+  if (requestConfig.retryable === false) {
+    return false;
+  }
+
+  if (!error.response) {
+    return true;
+  }
+
+  return RETRYABLE_STATUS_CODES.has(error.response.status);
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    if (!shouldRetryRequest(error)) {
+      return Promise.reject(error);
+    }
+
+    const requestConfig = error.config as RetriableRequestConfig;
+    requestConfig.retryCount = (requestConfig.retryCount || 0) + 1;
+
+    await delay(500 * requestConfig.retryCount);
+    return api.request(requestConfig);
+  }
+);
+
 const deviceHeaders = () => ({
   "x-device-id":
     Application.applicationId || "mobile-device",
@@ -98,9 +175,7 @@ const authHeaders = (token: string) => ({
 export const extractApiError = (error: unknown) => {
   if (axios.isAxiosError(error)) {
     if (isUnexpectedBackendTarget(error.response)) {
-      return API_BASE_URL
-        ? `${API_BASE_URL} is serving a website or HTML page instead of the VideoApp backend API. Point mobile/.env to the real API server where /health returns JSON.`
-        : "The configured backend URL is serving HTML instead of the VideoApp backend API.";
+      return SERVER_UNAVAILABLE_MESSAGE;
     }
 
     const serverMessage = (error.response?.data as { message?: string } | undefined)?.message;
@@ -110,20 +185,20 @@ export const extractApiError = (error: unknown) => {
     }
 
     if (error.code === "ECONNABORTED") {
-      return API_BASE_URL
-        ? `Request timed out while reaching ${API_BASE_URL}.`
-        : "Request timed out.";
+      return SERVER_UNAVAILABLE_MESSAGE;
     }
 
     if (!error.response) {
-      return API_BASE_URL
-        ? `Cannot reach backend at ${API_BASE_URL}. ${NETWORK_CONFIG_HINT}`
-        : NETWORK_MISSING_CONFIG_MESSAGE;
+      return API_BASE_URL ? SERVER_UNAVAILABLE_MESSAGE : NETWORK_MISSING_CONFIG_MESSAGE;
+    }
+
+    if (error.response.status >= 500) {
+      return SERVER_UNAVAILABLE_MESSAGE;
     }
 
     return (
       error.message ||
-      "Request failed."
+      SERVER_UNAVAILABLE_MESSAGE
     );
   }
 
@@ -157,7 +232,8 @@ export const pingServer = async () => {
   try {
     const response = await api.get("/health", {
       timeout: 4000,
-    });
+      retryLimit: 2,
+    } as RetriableRequestConfig);
 
     const contentType = getResponseContentType(response);
     const isJsonResponse = !contentType || contentType.includes("application/json");

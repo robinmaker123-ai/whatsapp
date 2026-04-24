@@ -28,7 +28,7 @@ envFiles.forEach((fileName) => {
   }
 });
 
-const parseCorsOrigin = (value) => {
+const parseOriginList = (value) => {
   if (!value) {
     return [];
   }
@@ -40,6 +40,8 @@ const parseCorsOrigin = (value) => {
 
   return origins;
 };
+
+const uniqueValues = (values = []) => Array.from(new Set(values.filter(Boolean)));
 
 const parseBoolean = (value, fallback = false) => {
   if (value === undefined || value === null || value === "") {
@@ -72,7 +74,8 @@ const config = {
   websitePublicDir,
   nodeEnv: process.env.NODE_ENV || initialNodeEnv,
   isProduction: (process.env.NODE_ENV || initialNodeEnv) === "production",
-  port: parseInteger(process.env.PORT, 5173),
+  appHost: String(process.env.HOST || process.env.APP_HOST || "0.0.0.0").trim() || "0.0.0.0",
+  port: parseInteger(process.env.PORT, 5001),
   mongoUri: process.env.MONGO_URI,
   jwtSecret: process.env.JWT_SECRET,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
@@ -92,10 +95,10 @@ const config = {
     process.env.OTP_REQUEST_COOLDOWN_SECONDS,
     45
   ),
-  corsOrigin: parseCorsOrigin(process.env.CLIENT_URL),
   websiteUrl: process.env.WEBSITE_URL || "",
   websiteDomain: process.env.WEBSITE_DOMAIN || "",
   apiDomain: process.env.API_DOMAIN || "",
+  apiUrl: process.env.API_URL || "",
   apkChannel: process.env.APK_CHANNEL || "production",
   phoneHashSecret: process.env.PHONE_HASH_SECRET || process.env.JWT_SECRET,
   apkFileName: process.env.APK_FILE_NAME || "videoapp-latest.apk",
@@ -131,13 +134,19 @@ const config = {
     process.env.UPLOAD_MAX_FILE_SIZE_BYTES,
     50 * 1024 * 1024
   ),
-  adminEmail: String(process.env.ADMIN_EMAIL || "admin@videoapp.local").trim(),
+  adminEmail: String(process.env.ADMIN_EMAIL || "admin@videoapp.example").trim(),
   adminName: String(process.env.ADMIN_NAME || "VideoApp Admin").trim(),
   adminPasswordHash: String(process.env.ADMIN_PASSWORD_HASH || "").trim(),
   trustProxy: parseBoolean(process.env.TRUST_PROXY, false),
   logDir,
   logLevel: String(process.env.LOG_LEVEL || "info").trim().toLowerCase(),
 };
+
+config.corsOrigins = uniqueValues([
+  ...parseOriginList(process.env.CORS_ORIGINS),
+  String(config.websiteUrl || "").trim(),
+]);
+config.corsOrigin = config.corsOrigins;
 
 config.sharedProductConfigPath = path.join(config.sharedConfigDir, "product.json");
 config.sharedReleaseManifestPath = path.join(config.sharedReleaseDir, "release.json");
