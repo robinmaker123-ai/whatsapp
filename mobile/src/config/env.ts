@@ -107,14 +107,9 @@ const developmentApiBaseUrl = resolveUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
 const developmentSocketUrl = resolveUrl(
   process.env.EXPO_PUBLIC_SOCKET_URL || process.env.EXPO_PUBLIC_API_BASE_URL
 );
-const releaseApiBaseUrl = resolvePublicReleaseUrl(
-  process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL || process.env.EXPO_PUBLIC_API_BASE_URL
-);
+const releaseApiBaseUrl = resolvePublicReleaseUrl(process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL);
 const releaseSocketUrl = resolvePublicReleaseUrl(
-  process.env.EXPO_PUBLIC_PRODUCTION_SOCKET_URL ||
-    process.env.EXPO_PUBLIC_SOCKET_URL ||
-    process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL ||
-    process.env.EXPO_PUBLIC_API_BASE_URL
+  process.env.EXPO_PUBLIC_PRODUCTION_SOCKET_URL || process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL
 );
 const runtimeLanUrl = resolveUrl(resolveRuntimeLanUrl());
 
@@ -150,8 +145,8 @@ export const DISCONNECTED_STATUS_LABEL = IS_DEV_BUILD
   ? "Waiting for backend"
   : "Backend unavailable";
 export const NETWORK_CONFIG_HINT = IS_DEV_BUILD
-  ? "Update mobile/.env with your current LAN IP and make sure the backend is running."
-  : "This release build needs a public backend URL. Rebuild with EXPO_PUBLIC_PRODUCTION_API_BASE_URL and EXPO_PUBLIC_PRODUCTION_SOCKET_URL pointing to your live API.";
+  ? "Update mobile/.env with your current LAN backend URL and make sure /health returns backend JSON, not website HTML."
+  : "This release build needs a public backend URL. Rebuild with EXPO_PUBLIC_PRODUCTION_API_BASE_URL and EXPO_PUBLIC_PRODUCTION_SOCKET_URL pointing to your live API where /health returns backend JSON.";
 export const NETWORK_MISSING_CONFIG_MESSAGE = IS_DEV_BUILD
   ? "Backend URL is not configured. Set EXPO_PUBLIC_API_BASE_URL in mobile/.env and restart Expo."
   : "This release build is missing a public backend URL. Set EXPO_PUBLIC_PRODUCTION_API_BASE_URL and EXPO_PUBLIC_PRODUCTION_SOCKET_URL before building the APK.";

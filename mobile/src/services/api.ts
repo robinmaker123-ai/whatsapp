@@ -25,10 +25,61 @@ import type {
   User,
 } from "../types/models";
 
+const EXPECTED_HEALTH_MESSAGE = "VideoApp backend is running.";
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
 });
+
+const getResponseContentType = (response?: {
+  headers?: unknown;
+}) => {
+  if (!response?.headers || typeof response.headers !== "object") {
+    return "";
+  }
+
+  const normalizedHeaders = response.headers as {
+    "content-type"?: unknown;
+    "Content-Type"?: unknown;
+  };
+  const rawContentType =
+    normalizedHeaders["content-type"] ?? normalizedHeaders["Content-Type"];
+
+  if (Array.isArray(rawContentType)) {
+    return rawContentType.map((value) => String(value || "")).join(";").toLowerCase();
+  }
+
+  return String(rawContentType || "").toLowerCase();
+};
+
+const looksLikeHtmlDocument = (value: unknown) =>
+  typeof value === "string" && /<(?:!doctype|html|head|body)\b/i.test(value);
+
+const isExpectedHealthPayload = (value: unknown): value is { message: string } =>
+  Boolean(
+    value &&
+      typeof value === "object" &&
+      "message" in value &&
+      (value as { message?: string }).message === EXPECTED_HEALTH_MESSAGE
+  );
+
+const isUnexpectedBackendTarget = (response?: {
+  data?: unknown;
+  headers?: unknown;
+}) => {
+  if (!response) {
+    return false;
+  }
+
+  const contentType = getResponseContentType(response);
+
+  if (contentType.includes("text/html")) {
+    return true;
+  }
+
+  return looksLikeHtmlDocument(response.data);
+};
 
 const deviceHeaders = () => ({
   "x-device-id":
@@ -46,6 +97,12 @@ const authHeaders = (token: string) => ({
 
 export const extractApiError = (error: unknown) => {
   if (axios.isAxiosError(error)) {
+    if (isUnexpectedBackendTarget(error.response)) {
+      return API_BASE_URL
+        ? `${API_BASE_URL} is serving a website or HTML page instead of the VideoApp backend API. Point mobile/.env to the real API server where /health returns JSON.`
+        : "The configured backend URL is serving HTML instead of the VideoApp backend API.";
+    }
+
     const serverMessage = (error.response?.data as { message?: string } | undefined)?.message;
 
     if (serverMessage) {
@@ -98,10 +155,22 @@ export const pingServer = async () => {
   }
 
   try {
-    await api.get("/health", {
+    const response = await api.get("/health", {
       timeout: 4000,
     });
-    return true;
+
+    const contentType = getResponseContentType(response);
+    const isJsonResponse = !contentType || contentType.includes("application/json");
+    const isHealthyBackend = isJsonResponse && isExpectedHealthPayload(response.data);
+
+    if (!isHealthyBackend && __DEV__) {
+      console.warn("[api] unexpected /health response", {
+        apiBaseUrl: API_BASE_URL,
+        contentType: contentType || "unknown",
+      });
+    }
+
+    return isHealthyBackend;
   } catch (error) {
     return false;
   }

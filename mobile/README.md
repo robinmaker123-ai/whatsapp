@@ -36,6 +36,8 @@ EXPO_PUBLIC_PRODUCTION_API_BASE_URL=https://api.videoapp.example
 EXPO_PUBLIC_PRODUCTION_SOCKET_URL=https://api.videoapp.example
 ```
 
+The release URL must be the real VideoApp API, not the website/dev server. `npm run build:android:apk` now validates `${EXPO_PUBLIC_PRODUCTION_API_BASE_URL}/health` before creating the build.
+
 4. Start Expo:
 
 ```bash
@@ -54,5 +56,6 @@ npm run build:android:preview
 
 - Use your real LAN IP instead of `localhost`, `127.0.0.1`, or `10.0.2.2`.
 - Release APKs should never be built with a private `172.x`, `192.168.x`, `10.x`, or `localhost` backend URL. Use the `EXPO_PUBLIC_PRODUCTION_*` variables for public builds.
+- Release APKs should point to the API service itself. If `/health` returns HTML or a website page, the URL is wrong and the build should be blocked.
 - The app requests contact permission after sign-in so it can match saved numbers with registered users.
 - When `ENABLE_DEV_OTP_PREVIEW=true` on the backend, the login screen shows the development OTP. Keep it `false` in production.

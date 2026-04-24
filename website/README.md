@@ -18,6 +18,8 @@ copy .env.example .env
 npm run dev
 ```
 
+The website dev server runs on `http://localhost:4173` so the backend can stay on `http://localhost:5173`.
+
 Set `VITE_API_BASE_URL` to the live backend URL so the Download page can read `/downloads/latest`.
 
 If you do not want to depend on the backend release endpoint, set `VITE_DIRECT_DOWNLOAD_URL` to a direct APK file URL and the main button will download the app from that link.

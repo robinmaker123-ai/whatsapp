@@ -33,4 +33,12 @@ const resolveBasePath = () => {
 export default defineConfig({
   plugins: [react()],
   base: resolveBasePath(),
+  server: {
+    port: 4173,
+    strictPort: true,
+  },
+  preview: {
+    port: 4173,
+    strictPort: true,
+  },
 });
