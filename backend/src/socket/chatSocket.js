@@ -198,11 +198,12 @@ const joinAuthenticatedUser = async (socket, io, ack) => {
 };
 
 const initializeSocketServer = (server) => {
+  const allowAnyOrigin =
+    config.corsOrigins.length === 0 || config.corsOrigins.includes("*");
   const io = new Server(server, {
     cors: {
-      origin: config.corsOrigins.length > 0 ? config.corsOrigins : true,
-      credentials: true,
-      methods: ["GET", "POST"],
+      origin: allowAnyOrigin ? true : config.corsOrigins,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     },
   });
 

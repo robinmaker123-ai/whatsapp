@@ -36,6 +36,25 @@ export default defineConfig({
   server: {
     port: 4173,
     strictPort: true,
+    proxy: {
+      "/api": {
+        target: process.env.VITE_DEV_BACKEND_URL || "http://127.0.0.1:3000",
+        changeOrigin: true,
+      },
+      "/socket.io": {
+        target: process.env.VITE_DEV_BACKEND_URL || "http://127.0.0.1:3000",
+        changeOrigin: true,
+        ws: true,
+      },
+      "/uploads": {
+        target: process.env.VITE_DEV_BACKEND_URL || "http://127.0.0.1:3000",
+        changeOrigin: true,
+      },
+      "/health": {
+        target: process.env.VITE_DEV_BACKEND_URL || "http://127.0.0.1:3000",
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port: 4173,

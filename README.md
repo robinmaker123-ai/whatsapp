@@ -47,7 +47,7 @@ npm run dev:backend
 npm run dev:website
 ```
 
-The backend now expects a real MongoDB instance from `MONGO_URI` and defaults to port `5001`.
+The backend now expects a real MongoDB instance from `MONGO_URI` and defaults to port `3000`.
 
 4. Start the mobile app:
 
@@ -117,6 +117,8 @@ Direct EAS production APK command:
 ```bash
 eas build -p android --profile production
 ```
+
+The recommended path is still `npm run build:android:apk --prefix mobile` because it validates `/health` before upload. `mobile/app.config.js` now embeds `mobile/.env.production` into the Expo config so installed APKs keep the correct API and socket URLs after download.
 
 ## Deployment targets
 

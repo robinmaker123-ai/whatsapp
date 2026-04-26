@@ -19,6 +19,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "INTERNET"
+      ],
       "package": "com.shyamraj.videoappchat",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,

@@ -28,6 +28,7 @@ const { uploadsDir } = require("./middlewares/uploadMiddleware");
 const app = express();
 const allowedOrigins = new Set(config.corsOrigins);
 const websiteRoutePrefixes = [
+  "/api",
   "/admin/announcements",
   "/admin/auth",
   "/admin/logs",
@@ -50,9 +51,10 @@ const websiteRoutePrefixes = [
   "/user",
   "/users",
 ];
+const allowAnyOrigin = allowedOrigins.size === 0 || allowedOrigins.has("*");
 
 const isOriginAllowed = (origin) => {
-  if (!origin || allowedOrigins.size === 0) {
+  if (!origin || allowAnyOrigin) {
     return true;
   }
 
@@ -68,7 +70,16 @@ const corsMiddleware = cors({
 
     callback(new Error("CORS origin is not allowed."));
   },
-  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Authorization",
+    "Content-Type",
+    "x-device-id",
+    "x-device-name",
+    "x-platform",
+    "x-app-version",
+    "x-app-build",
+  ],
 });
 
 const apiLimiter = createRateLimiter({
@@ -96,6 +107,14 @@ const adminLimiter = createRateLimiter({
   max: config.adminRateLimitMax,
   message: "Too many admin requests. Please try again later.",
 });
+const uploadsStaticMiddleware = express.static(path.resolve(uploadsDir), {
+  fallthrough: false,
+  setHeaders: (res) => {
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+  },
+});
+const apiRouter = express.Router();
 
 if (config.trustProxy) {
   app.set("trust proxy", 1);
@@ -116,18 +135,10 @@ app.use(morgan(config.isProduction ? "combined" : "dev"));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(apiLimiter);
-app.use(
-  "/uploads",
-  express.static(path.resolve(uploadsDir), {
-    fallthrough: false,
-    setHeaders: (res) => {
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      res.setHeader("X-Content-Type-Options", "nosniff");
-    },
-  })
-);
+app.use("/uploads", uploadsStaticMiddleware);
+app.use("/api/uploads", uploadsStaticMiddleware);
 
-app.get("/health", (req, res) => {
+apiRouter.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
     message: "VideoApp backend is running.",
@@ -137,25 +148,28 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.get("/health/ready", (req, res) => {
+apiRouter.get("/health/ready", (req, res) => {
   res.status(200).json({
     status: "ready",
   });
 });
 
-app.use("/auth", authLimiter, authRoutes);
-app.use("/admin", adminLimiter, adminRoutes);
-app.use("/site", siteRoutes);
-app.use("/contacts", protect, contactRoutes);
-app.use("/downloads", downloadRoutes);
-app.use("/media", uploadLimiter, mediaRoutes);
-app.use("/messages", messageRoutes);
-app.use("/status", statusRoutes);
-app.use("/calls", callRoutes);
-app.use("/groups", groupRoutes);
-app.use("/community", communityRoutes);
-app.use("/users", userRoutes);
-app.use("/user", userRoutes);
+apiRouter.use("/auth", authLimiter, authRoutes);
+apiRouter.use("/admin", adminLimiter, adminRoutes);
+apiRouter.use("/site", siteRoutes);
+apiRouter.use("/contacts", protect, contactRoutes);
+apiRouter.use("/downloads", downloadRoutes);
+apiRouter.use("/media", uploadLimiter, mediaRoutes);
+apiRouter.use("/messages", messageRoutes);
+apiRouter.use("/status", statusRoutes);
+apiRouter.use("/calls", callRoutes);
+apiRouter.use("/groups", groupRoutes);
+apiRouter.use("/community", communityRoutes);
+apiRouter.use("/users", userRoutes);
+apiRouter.use("/user", userRoutes);
+
+app.use("/api", apiRouter);
+app.use(apiRouter);
 
 const websiteDistDir = path.resolve(config.websiteDistDir);
 

@@ -96,8 +96,8 @@ const isNonPublicHostname = (host = "") => {
   return false;
 };
 
-const readRequiredUrl = (primaryName) => {
-  const value = readEnvValue(primaryName);
+const readRequiredUrl = (primaryName, ...fallbackNames) => {
+  const value = readEnvValue(primaryName, ...fallbackNames);
 
   if (!value) {
     throw new Error(missingError(primaryName));
@@ -158,8 +158,18 @@ const fetchJson = async (url, label) => {
 };
 
 const main = async () => {
-  const apiBaseUrl = readRequiredUrl("EXPO_PUBLIC_API_URL");
-  const socketUrl = readRequiredUrl("EXPO_PUBLIC_SOCKET_URL");
+  const apiBaseUrl = readRequiredUrl(
+    "EXPO_PUBLIC_API_URL",
+    "EXPO_PUBLIC_PRODUCTION_API_BASE_URL",
+    "EXPO_PUBLIC_API_BASE_URL"
+  );
+  const socketUrl = readRequiredUrl(
+    "EXPO_PUBLIC_SOCKET_URL",
+    "EXPO_PUBLIC_PRODUCTION_SOCKET_URL",
+    "EXPO_PUBLIC_API_URL",
+    "EXPO_PUBLIC_PRODUCTION_API_BASE_URL",
+    "EXPO_PUBLIC_API_BASE_URL"
+  );
 
   const healthPayload = await fetchJson(
     `${apiBaseUrl}/health`,

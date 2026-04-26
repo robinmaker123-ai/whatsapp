@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5001
+        value: 3000
       - key: CORS_ORIGINS
         sync: false
       - key: WEBSITE_URL

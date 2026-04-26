@@ -1,15 +1,20 @@
 const trimTrailingSlash = (value = "") => String(value || "").trim().replace(/\/+$/, "");
+const DEFAULT_API_BASE_URL = "/api";
 
 const readEnvValue = (...names) =>
   names
     .map((name) => trimTrailingSlash(import.meta.env?.[name]))
     .find(Boolean) || "";
 
-const toAbsoluteUrl = (value = "") => {
+const normalizeUrl = (value = "") => {
   const normalizedValue = trimTrailingSlash(value);
 
   if (!normalizedValue) {
     return "";
+  }
+
+  if (normalizedValue.startsWith("/")) {
+    return normalizedValue;
   }
 
   try {
@@ -18,6 +23,26 @@ const toAbsoluteUrl = (value = "") => {
     return "";
   }
 };
+
+const joinUrl = (baseUrl = "", path = "") => {
+  const normalizedBaseUrl = String(baseUrl || "").trim().replace(/\/+$/, "");
+  const normalizedPath = String(path || "").replace(/^\/+/, "");
+
+  if (!normalizedBaseUrl) {
+    return "";
+  }
+
+  if (normalizedBaseUrl.startsWith("/")) {
+    return normalizedPath
+      ? `${normalizedBaseUrl}/${normalizedPath}`.replace(/\/{2,}/g, "/")
+      : normalizedBaseUrl;
+  }
+
+  return new URL(normalizedPath, `${normalizedBaseUrl}/`).toString();
+};
+
+const getBrowserOrigin = () =>
+  typeof window === "undefined" ? "" : String(window.location.origin || "").trim();
 
 const sleep = (delayMs) =>
   new Promise((resolve) => {
@@ -59,9 +84,10 @@ const shouldRetryRequest = (response, error, retriesRemaining) => {
   return Boolean(response && RETRYABLE_STATUS_CODES.has(response.status));
 };
 
-export const BASE_URL = toAbsoluteUrl(readEnvValue("VITE_API_URL"));
+export const BASE_URL = normalizeUrl(readEnvValue("VITE_API_URL")) || DEFAULT_API_BASE_URL;
 export const SOCKET_URL =
-  toAbsoluteUrl(readEnvValue("VITE_SOCKET_URL", "VITE_API_URL")) || BASE_URL;
+  normalizeUrl(readEnvValue("VITE_SOCKET_URL")) ||
+  (BASE_URL.startsWith("/") ? getBrowserOrigin() : BASE_URL);
 export const IS_API_CONFIGURED = Boolean(BASE_URL);
 export const SERVER_UNAVAILABLE_MESSAGE = "Server temporarily unavailable. Please try again shortly.";
 
@@ -70,7 +96,7 @@ export const buildApiUrl = (path = "") => {
     return "";
   }
 
-  return new URL(String(path || "").replace(/^\/+/, ""), `${BASE_URL}/`).toString();
+  return joinUrl(BASE_URL, path);
 };
 
 export const requestJsonWithRetry = async (

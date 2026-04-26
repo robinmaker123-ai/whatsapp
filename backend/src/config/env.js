@@ -33,6 +33,10 @@ const parseOriginList = (value) => {
     return [];
   }
 
+  if (String(value).trim() === "*") {
+    return ["*"];
+  }
+
   const origins = value
     .split(",")
     .map((origin) => origin.trim())
@@ -75,7 +79,7 @@ const config = {
   nodeEnv: process.env.NODE_ENV || initialNodeEnv,
   isProduction: (process.env.NODE_ENV || initialNodeEnv) === "production",
   appHost: String(process.env.HOST || process.env.APP_HOST || "0.0.0.0").trim() || "0.0.0.0",
-  port: parseInteger(process.env.PORT, 5001),
+  port: parseInteger(process.env.PORT, 3000),
   mongoUri: process.env.MONGO_URI,
   jwtSecret: process.env.JWT_SECRET,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,

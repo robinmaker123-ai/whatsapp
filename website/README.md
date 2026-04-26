@@ -10,8 +10,8 @@ Public Vite + React website for landing pages, APK downloads, updates, and admin
 Variables:
 
 ```bash
-VITE_API_URL=https://api.videoapp.example
-VITE_SOCKET_URL=https://api.videoapp.example
+VITE_API_URL=/api
+VITE_SOCKET_URL=
 VITE_BASE_PATH=/
 ```
 
@@ -29,11 +29,11 @@ The website dev server runs on port `4173`.
 
 ## Production build
 
-1. Set `VITE_API_URL` and `VITE_SOCKET_URL` in `website/.env.production` or your hosting provider.
+1. Set `VITE_API_URL=/api` in `website/.env.production` or your hosting provider.
 2. Build the site:
 
 ```bash
 npm run build
 ```
 
-Use the real backend API URL here, not the public website URL.
+Use the reverse-proxied `/api` path so the production build does not depend on the Vite dev server.

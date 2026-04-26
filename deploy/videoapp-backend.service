@@ -1,0 +1,17 @@
+[Unit]
+Description=VideoApp backend API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/videoapp
+Environment=NODE_ENV=production
+Environment=PORT=3000
+EnvironmentFile=/var/www/videoapp/.env
+ExecStart=/usr/bin/node backend/src/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

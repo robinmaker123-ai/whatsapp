@@ -13,7 +13,7 @@ Create root `.env` on the server:
 
 ```bash
 NODE_ENV=production
-PORT=5001
+PORT=3000
 MONGO_URI=mongodb+srv://prod-user:password@cluster.mongodb.net/videoapp_production
 CORS_ORIGINS=https://videoapp.example,https://www.videoapp.example
 WEBSITE_URL=https://videoapp.example
@@ -35,8 +35,8 @@ TRUST_PROXY=true
 Use these environment variables in your hosting provider:
 
 ```bash
-VITE_API_URL=https://api.videoapp.example
-VITE_SOCKET_URL=https://api.videoapp.example
+VITE_API_URL=/api
+VITE_SOCKET_URL=
 VITE_BASE_PATH=/
 ```
 
@@ -52,18 +52,19 @@ Set `mobile/.env.production`:
 
 ```bash
 EXPO_PUBLIC_APP_ENV=production
-EXPO_PUBLIC_API_URL=https://api.videoapp.example
-EXPO_PUBLIC_SOCKET_URL=https://api.videoapp.example
+EXPO_PUBLIC_API_URL=http://65.0.100.186/api
+EXPO_PUBLIC_SOCKET_URL=http://65.0.100.186
 ```
 
 Validate and build:
 
 ```bash
 npm run validate:release-network --prefix mobile
-eas build -p android --profile production
+npm run build:android:apk --prefix mobile
 ```
 
 The production APK permanently bakes in the public backend URL from `mobile/.env.production`.
+`mobile/app.config.js` embeds those values into the Expo manifest so the installed APK still knows the correct backend target after the file itself is excluded from Git and remote workers.
 
 ## AWS EC2 deployment
 
@@ -96,17 +97,17 @@ pm2 save
 pm2 startup
 ```
 
-7. Put Nginx or Caddy in front of the API and point `api.videoapp.example` to the EC2 instance.
+7. Put Nginx or Caddy in front of the API and point your public host or EC2 IP to the instance.
 8. Confirm the backend is live:
 
 ```bash
-curl https://api.videoapp.example/health
+curl http://65.0.100.186/api/health
 ```
 
 ## VPS Docker deployment
 
 1. Create `.env.production` at repo root from `.env.production.example`.
-2. Set `PORT=5001` and `API_DOMAIN=api.videoapp.example`.
+2. Set `PORT=3000` and `API_DOMAIN=api.videoapp.example`.
 3. Run:
 
 ```bash
@@ -116,8 +117,8 @@ docker compose -f docker-compose.vps.yml up -d --build
 
 ## Verification checklist
 
-- `https://api.videoapp.example/health` returns JSON
-- `https://api.videoapp.example/health/ready` returns `200`
-- Website build points to `VITE_API_URL`
-- `mobile/.env.production` points to the public API
+- `http://65.0.100.186/api/health` returns JSON
+- `http://65.0.100.186/api/health/ready` returns `200`
+- Website build points to `/api`
+- `mobile/.env.production` points to the public API host
 - `npm run verify` passes before release
