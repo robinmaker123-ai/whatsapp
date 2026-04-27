@@ -11,6 +11,7 @@ Variables:
 
 ```bash
 VITE_API_URL=/api
+VITE_API_BASE_URL=
 VITE_SOCKET_URL=
 VITE_BASE_PATH=/
 ```
@@ -29,11 +30,13 @@ The website dev server runs on port `4173`.
 
 ## Production build
 
-1. Set `VITE_API_URL=/api` in `website/.env.production` or your hosting provider.
-2. Build the site:
+1. Set `VITE_API_URL=/api` when the website and backend share one public host behind a reverse proxy.
+2. Set `VITE_API_URL=https://api.videoapp.example/api` when the website is deployed on a separate static host such as GitHub Pages, Netlify, or Vercel without an edge rewrite to the backend.
+3. `VITE_API_BASE_URL` is also supported as a compatibility alias for CI and hosted builds.
+4. Build the site:
 
 ```bash
 npm run build
 ```
 
-Use the reverse-proxied `/api` path so the production build does not depend on the Vite dev server.
+Use the reverse-proxied `/api` path only when your hosting layer forwards that path to the backend. Otherwise use the backend's absolute public API URL.

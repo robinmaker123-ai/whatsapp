@@ -698,7 +698,9 @@ const AdminLoginPage = ({ apiBaseUrl, onLogin, onNavigate }) => {
     event.preventDefault();
 
     if (!apiBaseUrl) {
-      setErrorMessage("Set VITE_API_URL so the website can reach the backend admin API.");
+      setErrorMessage(
+        "Set VITE_API_URL or VITE_API_BASE_URL so the website can reach the backend admin API."
+      );
       return;
     }
 
@@ -793,7 +795,7 @@ const AdminDashboard = ({ apiBaseUrl, token, onLogout, onNavigate }) => {
 
   const adminRequest = async (path, options = {}) => {
     if (!apiBaseUrl) {
-      throw new Error("Set VITE_API_URL before using the admin dashboard.");
+      throw new Error("Set VITE_API_URL or VITE_API_BASE_URL before using the admin dashboard.");
     }
 
     const headers = new Headers(options.headers || {});

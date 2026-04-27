@@ -84,7 +84,9 @@ const shouldRetryRequest = (response, error, retriesRemaining) => {
   return Boolean(response && RETRYABLE_STATUS_CODES.has(response.status));
 };
 
-export const BASE_URL = normalizeUrl(readEnvValue("VITE_API_URL")) || DEFAULT_API_BASE_URL;
+export const BASE_URL =
+  normalizeUrl(readEnvValue("VITE_API_URL", "VITE_API_BASE_URL")) ||
+  DEFAULT_API_BASE_URL;
 export const SOCKET_URL =
   normalizeUrl(readEnvValue("VITE_SOCKET_URL")) ||
   (BASE_URL.startsWith("/") ? getBrowserOrigin() : BASE_URL);

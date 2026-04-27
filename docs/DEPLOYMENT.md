@@ -40,6 +40,10 @@ VITE_SOCKET_URL=
 VITE_BASE_PATH=/
 ```
 
+Use `VITE_API_URL=/api` only when the website and backend are served from the same public host and the reverse proxy forwards `/api` to the Node server.
+For split-host deployments such as GitHub Pages, Netlify, or Vercel plus a separate backend host, set `VITE_API_URL=https://api.videoapp.example/api` instead.
+`VITE_API_BASE_URL` is also accepted as a compatibility alias, and the GitHub Pages workflow maps the repository variable `WEBSITE_API_BASE_URL` into both names during the build.
+
 Build command:
 
 ```bash
